@@ -1,0 +1,321 @@
+@import "tailwindcss";
+
+/* ============================================
+   HospiGuide AI — Design System
+   Medical teal theme with dark mode, premium feel
+   ============================================ */
+
+@theme {
+  /* Primary - Calm Medical Teal */
+  --color-primary-50: #f0fdfa;
+  --color-primary-100: #ccfbf1;
+  --color-primary-200: #99f6e4;
+  --color-primary-300: #5eead4;
+  --color-primary-400: #2dd4bf;
+  --color-primary-500: #14b8a6;
+  --color-primary-600: #0d9488;
+  --color-primary-700: #0f766e;
+  --color-primary-800: #115e59;
+  --color-primary-900: #134e4a;
+  --color-primary-950: #042f2e;
+
+  /* Surface / Background - Deep Blue-Black */
+  --color-surface-50: #f8fafc;
+  --color-surface-100: #f1f5f9;
+  --color-surface-200: #e2e8f0;
+  --color-surface-300: #cbd5e1;
+  --color-surface-400: #94a3b8;
+  --color-surface-500: #64748b;
+  --color-surface-600: #475569;
+  --color-surface-700: #334155;
+  --color-surface-800: #1e293b;
+  --color-surface-900: #0f172a;
+  --color-surface-950: #0a0f1e;
+
+  /* Accent - Warm Amber */
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+
+  /* Semantic Colors */
+  --color-emergency: #ef4444;
+  --color-emergency-dark: #dc2626;
+  --color-success: #22c55e;
+  --color-success-dark: #16a34a;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+
+  /* Typography */
+  --font-sans: 'Inter', 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
+  --font-tamil: 'Noto Sans Tamil', 'Inter', sans-serif;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-glow: 0 0 20px rgba(13, 148, 136, 0.3);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.12);
+  --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.2);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.15);
+
+  /* Animations */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-surface-950);
+  color: var(--color-surface-100);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+   Glassmorphism Utilities
+   ============================================ */
+.glass {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: var(--shadow-glass);
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes checkmark-draw {
+  0% { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes route-dash {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -30; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in { animation: fadeIn 0.5s var(--ease-smooth) both; }
+.animate-fade-in-up { animation: fadeInUp 0.6s var(--ease-spring) both; }
+.animate-fade-in-down { animation: fadeInDown 0.5s var(--ease-spring) both; }
+.animate-slide-up { animation: slideUp 0.4s var(--ease-spring) both; }
+.animate-scale-in { animation: scaleIn 0.5s var(--ease-spring) both; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+.animate-spin-slow { animation: spin-slow 3s linear infinite; }
+
+/* Staggered delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+.delay-700 { animation-delay: 700ms; }
+.delay-800 { animation-delay: 800ms; }
+
+/* ============================================
+   Custom Scrollbar
+   ============================================ */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-600);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-500);
+}
+
+/* ============================================
+   Leaflet Overrides for Dark Theme
+   ============================================ */
+.leaflet-container {
+  background: var(--color-surface-900) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.leaflet-control-zoom a {
+  background: var(--color-surface-800) !important;
+  color: var(--color-surface-100) !important;
+  border-color: var(--color-surface-700) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: var(--color-surface-700) !important;
+}
+
+/* Blue dot marker */
+.blue-dot-marker {
+  position: relative;
+}
+
+.blue-dot-marker .dot {
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary-500);
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(20, 184, 166, 0.6);
+  position: relative;
+  z-index: 2;
+}
+
+.blue-dot-marker .ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+  margin-left: -20px;
+  border-radius: 50%;
+  background: rgba(20, 184, 166, 0.2);
+  animation: pulse-ring 2s ease-out infinite;
+  z-index: 1;
+}
+
+/* Route animation */
+.route-animated {
+  stroke-dasharray: 12 8;
+  animation: route-dash 1s linear infinite;
+}
+
+/* ============================================
+   Bottom Sheet
+   ============================================ */
+.bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 40;
+}
+
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  max-height: 80vh;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  overflow-y: auto;
+}
+
+.bottom-sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-500);
+  margin: 12px auto;
+}
+
+/* ============================================
+   Tamil font class
+   ============================================ */
+.font-tamil {
+  font-family: var(--font-tamil);
+}

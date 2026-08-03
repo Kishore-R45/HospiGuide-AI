@@ -1,0 +1,130 @@
+{
+  "app": {
+    "name": "HospiGuide AI",
+    "tagline": "Your AI-Powered Hospital Guide",
+    "loading": "Loading..."
+  },
+  "splash": {
+    "subtitle": "AI-Powered Indoor Navigation",
+    "checking": "Checking capabilities..."
+  },
+  "language": {
+    "title": "Choose Your Language",
+    "subtitle": "Select your preferred language to continue"
+  },
+  "permissions": {
+    "title": "Allow Access",
+    "subtitle": "We need a few permissions to guide you accurately",
+    "bluetooth": "Bluetooth",
+    "bluetoothDesc": "To sense nearby beacons and locate you accurately",
+    "motion": "Motion Sensors",
+    "motionDesc": "To track your steps as you walk",
+    "microphone": "Microphone",
+    "microphoneDesc": "So you can just speak instead of typing",
+    "continue": "Continue",
+    "skip": "Skip for now"
+  },
+  "assistant": {
+    "title": "How can I help you?",
+    "placeholder": "Describe your symptoms or ask anything...",
+    "greeting": "Hello! I'm your HospiGuide assistant. Tell me how you're feeling, or tap a quick option below.",
+    "emergency": "Emergency? Tap here",
+    "listening": "Listening...",
+    "thinking": "Finding the right department...",
+    "chips": {
+      "registration": "Registration",
+      "pharmacy": "Pharmacy",
+      "emergency": "Emergency",
+      "unwell": "I don't feel well"
+    },
+    "recommendation": {
+      "department": "Recommended Department",
+      "doctor": "Available Doctor",
+      "room": "Room",
+      "walkTime": "Walk Time",
+      "startNav": "Start Navigation",
+      "viewDoctors": "View All Doctors",
+      "confidence": "Confidence",
+      "disclaimer": "This is a department recommendation only — please consult the doctor for confirmation."
+    }
+  },
+  "navigation": {
+    "title": "Navigation",
+    "distance": "Distance",
+    "eta": "ETA",
+    "steps": "Steps",
+    "recalculating": "Recalculating route...",
+    "arrived": "You have arrived!",
+    "instructions": {
+      "straight": "Continue straight",
+      "left": "Turn left",
+      "right": "Turn right",
+      "uturn": "Turn around",
+      "upstairs": "Go upstairs",
+      "downstairs": "Go downstairs",
+      "elevator": "Take the elevator",
+      "destination": "Your destination is ahead"
+    }
+  },
+  "arrival": {
+    "title": "You've Arrived!",
+    "message": "You've arrived at {{department}}, {{room}}",
+    "findAnother": "Find Another Department",
+    "done": "Done"
+  },
+  "map": {
+    "floor": "Floor",
+    "myLocation": "My Location",
+    "recenter": "Re-center",
+    "floorSwitcher": "Switch Floor"
+  },
+  "doctors": {
+    "title": "Doctor Availability",
+    "available": "Available Now",
+    "availableFrom": "Available from {{time}}",
+    "unavailable": "Not Available Today",
+    "room": "Room",
+    "department": "Department"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "accessibility": "Accessibility",
+    "avoidStairs": "Avoid Stairs",
+    "avoidStairsDesc": "Prefer elevators for wheelchair/mobility access",
+    "voiceGuidance": "Voice Guidance",
+    "voiceGuidanceDesc": "Spoken navigation instructions",
+    "about": "About",
+    "aboutTitle": "About HospiGuide AI",
+    "aboutDesc": "An AI-powered indoor navigation system for hospitals. This is a research prototype demonstrating hybrid indoor localization using BLE beacons and phone sensors.",
+    "version": "Version 1.0.0 — Research Prototype"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "locations": "Locations",
+    "connections": "Connections",
+    "departments": "Departments",
+    "doctors": "Doctors",
+    "beacons": "Beacons",
+    "add": "Add New",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "search": "Search...",
+    "noData": "No data available",
+    "login": "Admin Login",
+    "password": "Enter admin password",
+    "loginBtn": "Login"
+  },
+  "common": {
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "meters": "m",
+    "minutes": "min"
+  }
+}
