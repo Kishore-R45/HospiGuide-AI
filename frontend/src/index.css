@@ -500,10 +500,10 @@ ul, ol {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: 8px 16px;
+  gap: clamp(6px, 1.5vw, var(--space-sm));
+  padding: clamp(6px, 1.5vh, 10px) clamp(12px, 3vw, 20px);
   border-radius: var(--radius-full);
-  font-size: 0.875rem;
+  font-size: clamp(0.8125rem, 2vw, 0.875rem);
   font-weight: 500;
   cursor: pointer;
   user-select: none;
@@ -512,7 +512,7 @@ ul, ol {
   border: 1.5px solid var(--surface-200);
   background: var(--surface-0);
   color: var(--surface-700);
-  min-height: 40px;
+  min-height: clamp(36px, 6vh, 44px);
 }
 
 .chip:hover {
@@ -898,17 +898,17 @@ ul, ol {
 .chat-container {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-lg);
+  padding: clamp(var(--space-md), 3vw, var(--space-xl));
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: clamp(var(--space-md), 2.5vh, var(--space-lg));
 }
 
 .chat-bubble {
-  max-width: 82%;
-  padding: 12px 16px;
+  max-width: 85%;
+  padding: clamp(12px, 2vh, 16px) clamp(16px, 3vw, 20px);
   font-size: 0.9375rem;
-  line-height: 1.5;
+  line-height: 1.6;
   word-wrap: break-word;
 }
 
@@ -928,13 +928,12 @@ ul, ol {
 }
 
 .chat-input-area {
-  position: sticky;
-  bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  position: relative;
+  z-index: 10;
+  background: var(--surface-0);
   border-top: 1px solid var(--surface-200);
   padding: var(--space-md) var(--space-lg);
+  flex-shrink: 0;
 }
 
 .chat-input-row {
@@ -1677,11 +1676,11 @@ ul, ol {
   100% { stroke-dashoffset: -30; }
 }
 
-.animate-fade-in { animation: fadeIn 0.5s var(--ease-smooth) both; }
-.animate-fade-in-up { animation: fadeInUp 0.5s var(--ease-spring) both; }
-.animate-fade-in-down { animation: fadeInDown 0.4s var(--ease-spring) both; }
-.animate-slide-up { animation: slideUp 0.4s var(--ease-spring) both; }
-.animate-scale-in { animation: scaleIn 0.4s var(--ease-spring) both; }
+.animate-fade-in { animation: none !important; opacity: 1 !important; }
+.animate-fade-in-up { animation: none !important; opacity: 1 !important; transform: none !important; }
+.animate-fade-in-down { animation: none !important; opacity: 1 !important; transform: none !important; }
+.animate-slide-up { animation: none !important; transform: none !important; }
+.animate-scale-in { animation: none !important; opacity: 1 !important; transform: none !important; }
 .animate-float { animation: float 3s ease-in-out infinite; }
 
 .delay-100 { animation-delay: 100ms; }

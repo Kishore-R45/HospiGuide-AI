@@ -106,13 +106,24 @@ const AssistantScreen: React.FC = () => {
     processMessage(chipTexts[chipKey] || chipKey);
   };
 
-  const handleVoice = () => {
+  const handleVoice = async () => {
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
       return;
     }
 
     if (isListening) {
       setIsListening(false);
+      return;
+    }
+
+    try {
+      // Explicitly request microphone access if not already granted
+      // This ensures the browser prompt appears even if they skipped the onboarding permission screen
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Stop the tracks immediately as we only needed it to trigger the permission prompt
+      stream.getTracks().forEach(track => track.stop());
+    } catch (error) {
+      console.warn("Microphone access denied or not available", error);
       return;
     }
 
@@ -138,7 +149,12 @@ const AssistantScreen: React.FC = () => {
       setIsListening(false);
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (e) {
+      console.error(e);
+      setIsListening(false);
+    }
   };
 
   const handleStartNavigation = (rec: ChatMessage['recommendation']) => {
