@@ -25,7 +25,7 @@ const AdminScreen: React.FC = () => {
       <div className="min-h-dvh flex flex-col items-center justify-center bg-surface-950 p-6 relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary-600/5 blur-[100px] pointer-events-none" />
         
-        <Card variant="glass" className="w-full max-w-sm p-6 relative z-10" animate>
+        <Card variant="glass" className="w-full max-w-sm p-6 relative z-10">
           <div className="flex flex-col items-center text-center mb-8">
             <div className="w-16 h-16 rounded-full bg-primary-500/10 flex items-center justify-center mb-4">
               <Lock className="w-8 h-8 text-primary-400" />

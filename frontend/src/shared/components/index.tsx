@@ -22,35 +22,27 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center gap-2 font-semibold transition-all duration-300 ease-out rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:ring-offset-2 focus:ring-offset-surface-950 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100';
-
-  const variants = {
-    primary: 'bg-gradient-to-r from-primary-600 to-primary-500 text-white hover:from-primary-500 hover:to-primary-400 shadow-lg shadow-primary-600/25 hover:shadow-primary-500/40',
-    secondary: 'bg-surface-700/80 text-surface-100 hover:bg-surface-600/80 border border-surface-600/50',
-    ghost: 'bg-transparent text-surface-300 hover:bg-surface-800/60 hover:text-surface-100',
-    danger: 'bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-500 hover:to-red-400 shadow-lg shadow-red-600/25',
-    outline: 'bg-transparent border-2 border-primary-500/60 text-primary-400 hover:bg-primary-500/10 hover:border-primary-400',
-  };
-
-  const sizes = {
-    sm: 'px-3 py-1.5 text-sm min-h-[36px]',
-    md: 'px-5 py-2.5 text-base min-h-[44px]',
-    lg: 'px-8 py-3.5 text-lg min-h-[52px]',
-  };
+  const sizeClass = size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : 'btn-md';
+  const variantClass = `btn-${variant}`;
+  const fullClass = fullWidth ? 'btn-full' : '';
 
   return (
     <button
-      className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`btn ${sizeClass} ${variantClass} ${fullClass} ${className}`}
       disabled={disabled || loading}
       {...props}
     >
       {loading ? (
-        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        <svg
+          style={{ animation: 'spin 1s linear infinite', width: 20, height: 20 }}
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
       ) : icon ? (
-        <span className="flex-shrink-0">{icon}</span>
+        <span style={{ display: 'flex', flexShrink: 0 }}>{icon}</span>
       ) : null}
       {children}
     </button>
@@ -65,7 +57,7 @@ interface CardProps {
   className?: string;
   variant?: 'default' | 'glass' | 'elevated';
   onClick?: () => void;
-  animate?: boolean;
+  style?: React.CSSProperties;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -73,20 +65,19 @@ export const Card: React.FC<CardProps> = ({
   className = '',
   variant = 'default',
   onClick,
-  animate = false,
+  style,
 }) => {
-  const variants = {
-    default: 'bg-surface-800/60 border border-surface-700/50 rounded-[var(--radius-lg)]',
-    glass: 'glass-card rounded-[var(--radius-lg)]',
-    elevated: 'bg-surface-800/80 border border-surface-700/40 rounded-[var(--radius-lg)] shadow-elevated',
-  };
+  const variantClass = variant === 'glass' ? 'card-glass' : variant === 'elevated' ? 'card-elevated' : 'card';
+  const interactiveClass = onClick ? 'card-interactive' : '';
 
   return (
     <div
-      className={`${variants[variant]} ${onClick ? 'cursor-pointer hover:border-primary-500/30 transition-all duration-300' : ''} ${animate ? 'animate-fade-in-up' : ''} ${className}`}
+      className={`${variantClass} ${interactiveClass} ${className}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); } : undefined}
+      style={style}
     >
       {children}
     </div>
@@ -101,7 +92,6 @@ interface ChipProps {
   icon?: React.ReactNode;
   onClick?: () => void;
   active?: boolean;
-  variant?: 'default' | 'outline';
 }
 
 export const Chip: React.FC<ChipProps> = ({
@@ -109,21 +99,14 @@ export const Chip: React.FC<ChipProps> = ({
   icon,
   onClick,
   active = false,
-  variant = 'default',
 }) => {
-  const base = 'inline-flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-full)] text-sm font-medium transition-all duration-300 cursor-pointer select-none active:scale-95 min-h-[44px]';
-  const styles = {
-    default: active
-      ? 'bg-primary-500/20 text-primary-300 border border-primary-500/40'
-      : 'bg-surface-700/60 text-surface-300 border border-surface-600/40 hover:bg-surface-600/60 hover:text-surface-100',
-    outline: active
-      ? 'bg-primary-500/10 text-primary-400 border-2 border-primary-500/50'
-      : 'bg-transparent text-surface-400 border-2 border-surface-600/40 hover:border-surface-500/60 hover:text-surface-200',
-  };
-
   return (
-    <button className={`${base} ${styles[variant]}`} onClick={onClick}>
-      {icon && <span className="flex-shrink-0 w-4 h-4">{icon}</span>}
+    <button
+      className={`chip ${active ? 'chip-active' : ''}`}
+      onClick={onClick}
+      type="button"
+    >
+      {icon && <span className="chip-icon">{icon}</span>}
       {label}
     </button>
   );
@@ -144,20 +127,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   ...props
 }, ref) => {
   return (
-    <div className="relative flex items-center">
-      {icon && (
-        <span className="absolute left-3.5 text-surface-400 pointer-events-none">
-          {icon}
-        </span>
-      )}
+    <div className="input-wrapper">
+      {icon && <span className="input-icon">{icon}</span>}
       <input
         ref={ref}
-        className={`w-full bg-surface-800/70 border border-surface-600/50 rounded-[var(--radius-md)] text-surface-100 placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500/50 transition-all duration-300 ${icon ? 'pl-11' : 'pl-4'} ${rightElement ? 'pr-12' : 'pr-4'} py-3 text-base min-h-[48px] ${className}`}
+        className={`input-field ${icon ? 'has-icon' : ''} ${rightElement ? 'has-right' : ''} ${className}`}
         {...props}
       />
-      {rightElement && (
-        <span className="absolute right-2">{rightElement}</span>
-      )}
+      {rightElement && <span className="input-right">{rightElement}</span>}
     </div>
   );
 });
@@ -171,67 +148,100 @@ interface ToastProps {
   message: string;
   visible: boolean;
   variant?: 'info' | 'success' | 'warning' | 'error';
+  onClose?: () => void;
 }
 
 export const Toast: React.FC<ToastProps> = ({
   message,
   visible,
   variant = 'info',
+  onClose,
 }) => {
+  React.useEffect(() => {
+    if (visible && onClose) {
+      const timer = setTimeout(onClose, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, onClose]);
+
   if (!visible) return null;
 
-  const variants = {
-    info: 'bg-primary-600/90 text-white',
-    success: 'bg-green-600/90 text-white',
-    warning: 'bg-amber-600/90 text-white',
-    error: 'bg-red-600/90 text-white',
-  };
-
   return (
-    <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-[var(--radius-full)] backdrop-blur-lg text-sm font-medium shadow-elevated animate-fade-in-down ${variants[variant]}`}>
-      {message}
+    <div className="toast-container">
+      <div className={`toast toast-${variant}`}>
+        {message}
+      </div>
     </div>
   );
 };
 
 /* ============================================
-   Floating Action Button
+   Modal Component
    ============================================ */
-interface FABProps {
-  icon: React.ReactNode;
-  onClick: () => void;
-  label?: string;
-  position?: 'bottom-right' | 'bottom-left' | 'bottom-center';
-  variant?: 'primary' | 'secondary';
-  className?: string;
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
 }
 
-export const FAB: React.FC<FABProps> = ({
-  icon,
-  onClick,
-  label,
-  variant = 'primary',
-  className = '',
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  footer,
 }) => {
-  const variants = {
-    primary: 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-600/30 hover:shadow-primary-500/50',
-    secondary: 'bg-surface-700/90 text-surface-200 border border-surface-600/50 hover:bg-surface-600/90 backdrop-blur-md',
-  };
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   return (
-    <button
-      className={`flex items-center justify-center gap-2 rounded-[var(--radius-full)] transition-all duration-300 active:scale-95 min-w-[48px] min-h-[48px] ${label ? 'px-5 py-3' : 'w-12 h-12'} ${variants[variant]} ${className}`}
-      onClick={onClick}
-      title={label}
-    >
-      {icon}
-      {label && <span className="text-sm font-medium">{label}</span>}
-    </button>
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
+        {title && (
+          <div className="modal-header">
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--surface-900)' }}>{title}</h2>
+            <button
+              onClick={onClose}
+              className="btn-icon-sm"
+              style={{
+                background: 'var(--surface-100)',
+                borderRadius: '50%',
+                color: 'var(--surface-500)',
+              }}
+              aria-label="Close"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
+        <div className="modal-body">
+          {children}
+        </div>
+        {footer && (
+          <div className="modal-footer">
+            {footer}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
 /* ============================================
-   Bottom Sheet
+   Bottom Sheet Component
    ============================================ */
 interface BottomSheetProps {
   children: React.ReactNode;
@@ -246,19 +256,28 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   onClose,
   title,
 }) => {
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
     <>
       <div className="bottom-sheet-overlay animate-fade-in" onClick={onClose} />
-      <div className="bottom-sheet glass-card animate-slide-up">
+      <div className="bottom-sheet">
         <div className="bottom-sheet-handle" />
         {title && (
-          <div className="px-6 pb-3">
-            <h3 className="text-lg font-semibold text-surface-100">{title}</h3>
+          <div style={{ padding: '0 24px 12px' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--surface-800)' }}>{title}</h3>
           </div>
         )}
-        <div className="px-6 pb-8 max-h-[60vh] overflow-y-auto">
+        <div style={{ padding: '0 24px 32px', maxHeight: '60vh', overflowY: 'auto' }}>
           {children}
         </div>
       </div>
@@ -275,65 +294,13 @@ interface StatusBadgeProps {
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label }) => {
-  const styles = {
-    available: 'bg-green-500/15 text-green-400 border-green-500/30',
-    soon: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-    unavailable: 'bg-surface-600/30 text-surface-400 border-surface-600/40',
-  };
-
-  const dotStyles = {
-    available: 'bg-green-400',
-    soon: 'bg-amber-400',
-    unavailable: 'bg-surface-500',
-  };
-
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${styles[status]}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${dotStyles[status]} ${status === 'available' ? 'animate-pulse' : ''}`} />
+    <span className={`status-badge status-${status}`}>
+      <span className={`status-dot status-dot-${status}`} />
       {label}
     </span>
   );
 };
-
-/* ============================================
-   Emergency Banner
-   ============================================ */
-interface EmergencyBannerProps {
-  label: string;
-  onClick: () => void;
-}
-
-export const EmergencyBanner: React.FC<EmergencyBannerProps> = ({ label, onClick }) => {
-  return (
-    <button
-      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-red-600/90 to-red-500/90 text-white font-semibold text-sm rounded-[var(--radius-md)] hover:from-red-500/90 hover:to-red-400/90 transition-all duration-300 active:scale-[0.98] shadow-lg shadow-red-600/20 min-h-[44px]"
-      onClick={onClick}
-    >
-      <span className="relative flex h-3 w-3">
-        <span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-75 animate-ping" />
-        <span className="relative inline-flex rounded-full h-3 w-3 bg-white" />
-      </span>
-      {label}
-    </button>
-  );
-};
-
-/* ============================================
-   Section Header
-   ============================================ */
-export const SectionHeader: React.FC<{
-  title: string;
-  subtitle?: string;
-  action?: React.ReactNode;
-}> = ({ title, subtitle, action }) => (
-  <div className="flex items-center justify-between mb-4">
-    <div>
-      <h2 className="text-lg font-bold text-surface-100">{title}</h2>
-      {subtitle && <p className="text-sm text-surface-400 mt-0.5">{subtitle}</p>}
-    </div>
-    {action}
-  </div>
-);
 
 /* ============================================
    Toggle Switch
@@ -347,11 +314,132 @@ export const Toggle: React.FC<{
     role="switch"
     aria-checked={checked}
     disabled={disabled}
-    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/40 ${checked ? 'bg-primary-500' : 'bg-surface-600'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+    className={`toggle ${checked ? 'toggle-on' : 'toggle-off'}`}
     onClick={() => !disabled && onChange(!checked)}
+    type="button"
   >
-    <span
-      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${checked ? 'translate-x-6' : 'translate-x-1'}`}
-    />
+    <span className="toggle-knob" />
   </button>
 );
+
+/* ============================================
+   Section Header
+   ============================================ */
+export const SectionHeader: React.FC<{
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+}> = ({ title, subtitle, action }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+    <div>
+      <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--surface-800)' }}>{title}</h2>
+      {subtitle && <p style={{ fontSize: '0.8125rem', color: 'var(--surface-500)', marginTop: 2 }}>{subtitle}</p>}
+    </div>
+    {action}
+  </div>
+);
+
+/* ============================================
+   Emergency Banner
+   ============================================ */
+interface EmergencyBannerProps {
+  label: string;
+  onClick: () => void;
+}
+
+export const EmergencyBanner: React.FC<EmergencyBannerProps> = ({ label, onClick }) => {
+  return (
+    <button
+      className="btn btn-md btn-danger btn-full"
+      onClick={onClick}
+      type="button"
+      style={{ gap: 8 }}
+    >
+      <span style={{ position: 'relative', display: 'flex', width: 12, height: 12 }}>
+        <span style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: '50%',
+          background: '#ffffff',
+          opacity: 0.75,
+          animation: 'pulse-scale 1.5s ease-in-out infinite',
+        }} />
+        <span style={{
+          position: 'relative',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+          background: '#ffffff',
+        }} />
+      </span>
+      {label}
+    </button>
+  );
+};
+
+/* ============================================
+   Error Boundary
+   ============================================ */
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+export class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  ErrorBoundaryState
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="error-page">
+          <div className="error-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--surface-800)', marginBottom: 8 }}>
+            Something went wrong
+          </h1>
+          <p style={{ fontSize: '0.9375rem', color: 'var(--surface-500)', marginBottom: 8, maxWidth: 300, textAlign: 'center' }}>
+            An unexpected error occurred. Please try again.
+          </p>
+          {this.state.error && (
+            <p style={{
+              fontSize: '0.8125rem',
+              color: 'var(--color-error)',
+              background: 'var(--color-error-bg)',
+              padding: '8px 16px',
+              borderRadius: 8,
+              marginBottom: 24,
+              maxWidth: 300,
+              wordBreak: 'break-word',
+            }}>
+              {this.state.error.message}
+            </p>
+          )}
+          <button className="btn btn-md btn-primary" onClick={this.handleRetry}>
+            Try Again
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}

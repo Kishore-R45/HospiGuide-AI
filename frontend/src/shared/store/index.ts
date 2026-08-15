@@ -30,15 +30,9 @@ interface SessionState {
   sessionId: string;
   entranceId: string | null;
   onboardingComplete: boolean;
-  permissionsGranted: {
-    bluetooth: boolean;
-    motion: boolean;
-    microphone: boolean;
-  };
   setSessionId: (id: string) => void;
   setEntranceId: (id: string) => void;
   setOnboardingComplete: (complete: boolean) => void;
-  setPermission: (type: 'bluetooth' | 'motion' | 'microphone', granted: boolean) => void;
   reset: () => void;
 }
 
@@ -49,28 +43,123 @@ export const useSessionStore = create<SessionState>()((set) => ({
   sessionId: generateSessionId(),
   entranceId: null,
   onboardingComplete: false,
-  permissionsGranted: {
-    bluetooth: false,
-    motion: false,
-    microphone: false,
-  },
   setSessionId: (id) => set({ sessionId: id }),
   setEntranceId: (id) => set({ entranceId: id }),
   setOnboardingComplete: (complete) => set({ onboardingComplete: complete }),
-  setPermission: (type, granted) =>
-    set((state) => ({
-      permissionsGranted: {
-        ...state.permissionsGranted,
-        [type]: granted,
-      },
-    })),
   reset: () =>
     set({
       sessionId: generateSessionId(),
       entranceId: null,
       onboardingComplete: false,
-      permissionsGranted: { bluetooth: false, motion: false, microphone: false },
     }),
+}));
+
+/* ============================================
+   Permission Store
+   ============================================ */
+interface PermissionState {
+  bluetooth: boolean;
+  location: boolean;
+  microphone: boolean;
+  setPermission: (type: 'bluetooth' | 'location' | 'microphone', granted: boolean) => void;
+  requestPermission: (type: 'bluetooth' | 'location' | 'microphone') => Promise<boolean>;
+  requestAllPermissions: () => Promise<void>;
+}
+
+export const usePermissionStore = create<PermissionState>()(
+  persist(
+    (set, get) => ({
+      bluetooth: false,
+      location: false,
+      microphone: false,
+      setPermission: (type, granted) =>
+        set({ [type]: granted }),
+      requestPermission: async (type) => {
+        try {
+          if (type === 'microphone') {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach((track) => track.stop());
+            set({ microphone: true });
+            return true;
+          }
+          if (type === 'location') {
+            return new Promise<boolean>((resolve) => {
+              navigator.geolocation.getCurrentPosition(
+                () => { set({ location: true }); resolve(true); },
+                () => { resolve(false); },
+                { timeout: 10000 }
+              );
+            });
+          }
+          if (type === 'bluetooth') {
+            // Bluetooth Web API requires user gesture and may not be available
+            if ('bluetooth' in navigator) {
+              try {
+                // Just check if API is available, don't request device
+                set({ bluetooth: true });
+                return true;
+              } catch {
+                return false;
+              }
+            }
+            // Mark as granted if API not available (will handle gracefully)
+            set({ bluetooth: true });
+            return true;
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      },
+      requestAllPermissions: async () => {
+        const state = get();
+        await state.requestPermission('location');
+        await state.requestPermission('microphone');
+        await state.requestPermission('bluetooth');
+      },
+    }),
+    {
+      name: 'hospiguide-permissions',
+    }
+  )
+);
+
+/* ============================================
+   UI Store
+   ============================================ */
+export type BottomTab = 'chat' | 'map' | 'doctors' | 'settings';
+
+interface ToastMessage {
+  id: string;
+  message: string;
+  variant: 'info' | 'success' | 'warning' | 'error';
+}
+
+interface UIState {
+  activeTab: BottomTab;
+  isFullscreen: boolean;
+  toast: ToastMessage | null;
+  setActiveTab: (tab: BottomTab) => void;
+  setFullscreen: (val: boolean) => void;
+  showToast: (message: string, variant?: ToastMessage['variant']) => void;
+  clearToast: () => void;
+}
+
+export const useUIStore = create<UIState>()((set) => ({
+  activeTab: 'chat',
+  isFullscreen: false,
+  toast: null,
+  setActiveTab: (tab) => set({ activeTab: tab }),
+  setFullscreen: (val) => set({ isFullscreen: val }),
+  showToast: (message, variant = 'info') =>
+    set({
+      toast: {
+        id: Date.now().toString(),
+        message,
+        variant,
+      },
+    }),
+  clearToast: () => set({ toast: null }),
 }));
 
 /* ============================================
@@ -96,7 +185,7 @@ interface NavigationState {
   routeCoordinates: [number, number][];
   totalDistance: number;
   remainingDistance: number;
-  eta: number; // minutes
+  eta: number;
   isRecalculating: boolean;
   voiceEnabled: boolean;
   avoidStairs: boolean;
@@ -183,7 +272,7 @@ export const useNavigationStore = create<NavigationState>()(
 interface MapState {
   currentFloor: number;
   userPosition: { x: number; y: number } | null;
-  userHeading: number; // degrees
+  userHeading: number;
   positionConfidence: number;
   setCurrentFloor: (floor: number) => void;
   setUserPosition: (pos: { x: number; y: number }) => void;

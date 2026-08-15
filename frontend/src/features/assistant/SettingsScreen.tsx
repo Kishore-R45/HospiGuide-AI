@@ -1,104 +1,166 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useLanguageStore, useNavigationStore } from '../../shared/store';
-import { Toggle, SectionHeader } from '../../shared/components';
-import { ArrowLeft, Globe, Accessibility, Volume2, Info } from 'lucide-react';
+import { Toggle } from '../../shared/components';
+import { Globe, Accessibility, Volume2, Info, Mail, Phone, MessageSquare, Shield, FileText, Trash2 } from 'lucide-react';
 
 const SettingsScreen: React.FC = () => {
-  const navigate = useNavigate();
   const { t, language, setLanguage } = useLanguageStore();
   const { avoidStairs, setAvoidStairs, voiceEnabled, toggleVoice } = useNavigationStore();
+  const [email] = useState('');
+  const [phone] = useState('');
+
+  const handleResetApp = () => {
+    if (window.confirm('Are you sure you want to reset all app data?')) {
+      localStorage.clear();
+      window.location.href = '/';
+    }
+  };
 
   return (
-    <div className="min-h-dvh flex flex-col bg-surface-950">
-      {/* Header */}
-      <header className="glass sticky top-0 z-30 px-4 py-4 flex items-center gap-3">
-        <button 
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-surface-800/60 flex items-center justify-center text-surface-200 hover:bg-surface-700/60 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-bold text-white">{t('settings.title')}</h1>
-      </header>
+    <div className="flex-1 flex flex-col bg-[var(--surface-50)] overflow-y-auto pb-6">
+      <div className="sticky top-0 z-10 bg-[var(--surface-0)] border-b border-[var(--surface-200)] shadow-sm px-4 pt-4 pb-3 mb-6">
+        <h2 className="text-xl font-bold text-[var(--surface-900)]">{t('settings.title')}</h2>
+      </div>
 
-      <div className="flex-1 p-6 space-y-8 animate-fade-in-up">
+      <div className="px-4 space-y-8 animate-fade-in-up">
         
         {/* Language Section */}
-        <section>
-          <SectionHeader title={t('settings.language')} />
-          <div className="glass-card rounded-[var(--radius-lg)] overflow-hidden">
+        <section className="settings-section">
+          <h3 className="settings-section-title">{t('settings.language')}</h3>
+          <div className="settings-card">
             <div 
-              className={`p-4 flex items-center justify-between border-b border-surface-700/50 cursor-pointer hover:bg-surface-800/50 transition-colors ${language === 'en' ? 'bg-primary-500/10' : ''}`}
+              className="settings-item"
+              style={{ background: language === 'en' ? 'var(--primary-50)' : undefined }}
               onClick={() => setLanguage('en')}
             >
               <div className="flex items-center gap-3">
-                <Globe className={`w-5 h-5 ${language === 'en' ? 'text-primary-400' : 'text-surface-400'}`} />
-                <span className={`font-medium ${language === 'en' ? 'text-white' : 'text-surface-300'}`}>English</span>
+                <Globe width={20} height={20} color={language === 'en' ? 'var(--primary-500)' : 'var(--surface-400)'} />
+                <span className="font-medium" style={{ color: language === 'en' ? 'var(--primary-700)' : 'var(--surface-700)' }}>English</span>
               </div>
-              {language === 'en' && <div className="w-2 h-2 rounded-full bg-primary-400" />}
+              {language === 'en' && <div className="w-2 h-2 rounded-full bg-[var(--primary-500)]" />}
             </div>
             <div 
-              className={`p-4 flex items-center justify-between cursor-pointer hover:bg-surface-800/50 transition-colors ${language === 'ta' ? 'bg-primary-500/10' : ''}`}
+              className="settings-item border-t border-[var(--surface-100)]"
+              style={{ background: language === 'ta' ? 'var(--primary-50)' : undefined }}
               onClick={() => setLanguage('ta')}
             >
               <div className="flex items-center gap-3">
-                <Globe className={`w-5 h-5 ${language === 'ta' ? 'text-primary-400' : 'text-surface-400'}`} />
-                <span className={`font-medium font-tamil ${language === 'ta' ? 'text-white' : 'text-surface-300'}`}>தமிழ்</span>
+                <Globe width={20} height={20} color={language === 'ta' ? 'var(--primary-500)' : 'var(--surface-400)'} />
+                <span className="font-medium font-tamil" style={{ color: language === 'ta' ? 'var(--primary-700)' : 'var(--surface-700)' }}>தமிழ்</span>
               </div>
-              {language === 'ta' && <div className="w-2 h-2 rounded-full bg-primary-400" />}
+              {language === 'ta' && <div className="w-2 h-2 rounded-full bg-[var(--primary-500)]" />}
             </div>
           </div>
         </section>
 
         {/* Preferences Section */}
-        <section>
-          <SectionHeader title="Preferences" />
-          <div className="glass-card rounded-[var(--radius-lg)] overflow-hidden">
-            <div className="p-4 flex items-center justify-between border-b border-surface-700/50">
-              <div className="flex gap-3">
-                <Accessibility className="w-5 h-5 text-surface-400 mt-0.5" />
-                <div>
-                  <p className="font-medium text-white">{t('settings.avoidStairs')}</p>
-                  <p className="text-sm text-surface-400 mt-0.5">{t('settings.avoidStairsDesc')}</p>
-                </div>
+        <section className="settings-section">
+          <h3 className="settings-section-title">{t('settings.accessibility')}</h3>
+          <div className="settings-card">
+            <div className="settings-item">
+              <div className="settings-item-icon settings-item-icon-warning">
+                <Accessibility width={20} height={20} />
+              </div>
+              <div className="settings-item-text">
+                <div className="settings-item-title">{t('settings.avoidStairs')}</div>
+                <div className="settings-item-desc">{t('settings.avoidStairsDesc')}</div>
               </div>
               <Toggle checked={avoidStairs} onChange={setAvoidStairs} />
             </div>
             
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex gap-3">
-                <Volume2 className="w-5 h-5 text-surface-400 mt-0.5" />
-                <div>
-                  <p className="font-medium text-white">{t('settings.voiceGuidance')}</p>
-                  <p className="text-sm text-surface-400 mt-0.5">{t('settings.voiceGuidanceDesc')}</p>
-                </div>
+            <div className="settings-item border-t border-[var(--surface-100)]">
+              <div className="settings-item-icon settings-item-icon-info">
+                <Volume2 width={20} height={20} />
+              </div>
+              <div className="settings-item-text">
+                <div className="settings-item-title">{t('settings.voiceGuidance')}</div>
+                <div className="settings-item-desc">{t('settings.voiceGuidanceDesc')}</div>
               </div>
               <Toggle checked={voiceEnabled} onChange={toggleVoice} />
             </div>
           </div>
         </section>
 
-        {/* About Section */}
-        <section>
-          <SectionHeader title={t('settings.about')} />
-          <div className="glass-card rounded-[var(--radius-lg)] p-5">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-[var(--radius-md)] bg-primary-500/20 flex items-center justify-center flex-shrink-0">
-                <Info className="w-6 h-6 text-primary-400" />
+        {/* Contact Section */}
+        <section className="settings-section">
+          <h3 className="settings-section-title">{t('settings.contactUs')}</h3>
+          <div className="settings-card">
+            <div className="settings-item">
+              <div className="settings-item-icon settings-item-icon-primary">
+                <Mail width={20} height={20} />
               </div>
-              <div>
-                <h3 className="font-bold text-white">{t('settings.aboutTitle')}</h3>
-                <p className="text-sm text-surface-400 mt-2 leading-relaxed">
-                  {t('settings.aboutDesc')}
-                </p>
-                <div className="mt-4 pt-4 border-t border-surface-700/50 text-xs text-surface-500">
-                  {t('settings.version')}
-                </div>
+              <div className="settings-item-text">
+                <div className="settings-item-title">{t('settings.email')}</div>
+                <div className="settings-item-desc">{email || 'Not configured'}</div>
+              </div>
+            </div>
+            <div className="settings-item border-t border-[var(--surface-100)]">
+              <div className="settings-item-icon settings-item-icon-primary">
+                <Phone width={20} height={20} />
+              </div>
+              <div className="settings-item-text">
+                <div className="settings-item-title">{t('settings.phone')}</div>
+                <div className="settings-item-desc">{phone || 'Not configured'}</div>
+              </div>
+            </div>
+            <div className="settings-item border-t border-[var(--surface-100)]">
+              <div className="settings-item-icon settings-item-icon-primary">
+                <MessageSquare width={20} height={20} />
+              </div>
+              <div className="settings-item-text">
+                <div className="settings-item-title">{t('settings.feedback')}</div>
               </div>
             </div>
           </div>
         </section>
+
+        {/* Legal & About Section */}
+        <section className="settings-section">
+          <h3 className="settings-section-title">{t('settings.about')}</h3>
+          <div className="settings-card">
+            <div className="settings-item flex-col items-start gap-4 p-5 bg-[var(--surface-0)] cursor-default hover:bg-[var(--surface-0)]">
+              <div className="flex items-start gap-4">
+                <div className="settings-item-icon settings-item-icon-primary" style={{ width: 48, height: 48 }}>
+                  <Info width={24} height={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[var(--surface-900)]">{t('settings.aboutTitle')}</h3>
+                  <p className="text-sm text-[var(--surface-500)] mt-2 leading-relaxed">
+                    {t('settings.aboutDesc')}
+                  </p>
+                  <div className="mt-4 pt-4 border-t border-[var(--surface-100)] text-xs text-[var(--surface-400)]">
+                    {t('settings.version')}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="settings-item border-t border-[var(--surface-100)]">
+              <Shield width={20} height={20} color="var(--surface-400)" />
+              <div className="settings-item-text">
+                <div className="settings-item-title">{t('settings.privacyPolicy')}</div>
+              </div>
+            </div>
+            
+            <div className="settings-item border-t border-[var(--surface-100)]">
+              <FileText width={20} height={20} color="var(--surface-400)" />
+              <div className="settings-item-text">
+                <div className="settings-item-title">{t('settings.termsOfService')}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Danger Zone */}
+        <div className="flex justify-center mt-8 pb-8">
+          <button 
+            className="flex items-center gap-2 text-[var(--color-error)] font-medium text-sm py-2 px-4 rounded-[var(--radius-md)] hover:bg-[var(--color-error-bg)] transition-colors"
+            onClick={handleResetApp}
+          >
+            <Trash2 width={16} height={16} />
+            {t('settings.resetApp')}
+          </button>
+        </div>
 
       </div>
     </div>

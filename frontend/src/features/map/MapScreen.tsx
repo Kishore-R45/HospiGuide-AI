@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, ImageOverlay, Polyline, Marker, useMap, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useLanguageStore, useNavigationStore, useMapStore } from '../../shared/store';
-import { BottomSheet, FAB, Button } from '../../shared/components';
-import { floorPlans } from '../../data/mockData';
-import { X, Navigation2, Volume2, VolumeX, Layers, CheckCircle2, ArrowRightCircle } from 'lucide-react';
+import { useLanguageStore, useNavigationStore, useMapStore, useUIStore } from '../../shared/store';
+import { BottomSheet, Button } from '../../shared/components';
+import { X, Navigation2, Volume2, VolumeX, Layers, CheckCircle2, ArrowRightCircle, Maximize2, Minimize2 } from 'lucide-react';
 
 // Custom icons
 const createCustomIcon = (color: string, iconHtml: string) => L.divIcon({
@@ -18,37 +17,28 @@ const createCustomIcon = (color: string, iconHtml: string) => L.divIcon({
 
 const destIcon = createCustomIcon('#ef4444', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>');
 
-// A component to handle map interactions like recentering and bounds
 const MapController: React.FC<{
   currentFloor: number;
   userPosition: { x: number; y: number } | null;
   shouldRecenter: boolean;
   onRecentered: () => void;
-}> = ({ currentFloor, userPosition, shouldRecenter, onRecentered }) => {
+  floorPlan: { width: number; height: number } | null;
+}> = ({ userPosition, shouldRecenter, onRecentered, floorPlan }) => {
   const map = useMap();
-  const floorPlan = floorPlans.find(f => f.floorNumber === currentFloor);
 
   useEffect(() => {
     if (floorPlan) {
-      // Set bounds based on image dimensions
-      const bounds = new L.LatLngBounds(
-        [0, 0],
-        [floorPlan.height, floorPlan.width]
-      );
+      const bounds = new L.LatLngBounds([0, 0], [floorPlan.height, floorPlan.width]);
       map.setMaxBounds(bounds);
-      
-      // Initial fit bounds if no position
       if (!userPosition) {
         map.fitBounds(bounds, { padding: [20, 20] });
       }
     }
-  }, [map, currentFloor, floorPlan]);
+  }, [map, floorPlan, userPosition]);
 
   useEffect(() => {
     if (shouldRecenter && userPosition) {
-      map.flyTo([userPosition.y, userPosition.x], map.getZoom() || 1, {
-        duration: 0.5,
-      });
+      map.flyTo([userPosition.y, userPosition.x], map.getZoom() || 1, { duration: 0.5 });
       onRecentered();
     }
   }, [shouldRecenter, userPosition, map, onRecentered]);
@@ -56,7 +46,6 @@ const MapController: React.FC<{
   return null;
 };
 
-// Component for the blue dot marker
 const BlueDot: React.FC<{ position: [number, number]; heading: number }> = ({ position, heading }) => {
   const icon = L.divIcon({
     className: 'blue-dot-marker',
@@ -79,102 +68,62 @@ const MapScreen: React.FC = () => {
   const {
     isNavigating, destinationName, steps, currentStepIndex,
     routeCoordinates, voiceEnabled, remainingDistance, eta,
-    stopNavigation, advanceStep, toggleVoice
+    stopNavigation, toggleVoice
   } = useNavigationStore();
-  const { currentFloor, userPosition, userHeading, setCurrentFloor, setUserPosition } = useMapStore();
+  const { currentFloor, userPosition, userHeading, setCurrentFloor } = useMapStore();
+  const { isFullscreen, setFullscreen } = useUIStore();
 
   const [showBottomSheet, setShowBottomSheet] = useState(true);
   const [shouldRecenter, setShouldRecenter] = useState(true);
   const [showFloorPicker, setShowFloorPicker] = useState(false);
 
-  const floorPlan = floorPlans.find(f => f.floorNumber === currentFloor);
+  // Hardcoded floor plans config to avoid mockData dependency
+  const floorPlans = [
+    { floorNumber: 1, name: "Ground Floor", imageUrl: "/maps/floor-1.svg", width: 800, height: 600 },
+    { floorNumber: 2, name: "First Floor", imageUrl: "/maps/floor-2.svg", width: 800, height: 600 },
+  ];
+
+  const floorPlan = floorPlans.find(f => f.floorNumber === currentFloor) || null;
   const bounds: L.LatLngBoundsExpression = floorPlan
     ? [[0, 0], [floorPlan.height, floorPlan.width]]
     : [[0, 0], [1000, 1000]];
 
-  // Mock movement simulation for prototype
+  // Cleanup fullscreen on unmount
   useEffect(() => {
-    if (!isNavigating || routeCoordinates.length === 0) return;
-
-    let index = 0;
-    const interval = setInterval(() => {
-      if (index < routeCoordinates.length) {
-        const [x, y] = routeCoordinates[index];
-        setUserPosition({ x, y });
-        
-        // Calculate mock heading
-        if (index > 0) {
-          // but image overlay usually has Y going down in typical web, 
-          // however Leaflet Simple puts [0,0] at bottom-left. 
-          // We will just use the angle directly for prototype.
-        }
-
-        // Auto advance steps based on distance (simplified mock)
-        if (index % Math.max(1, Math.floor(routeCoordinates.length / steps.length)) === 0) {
-           advanceStep();
-        }
-
-        index++;
-      } else {
-        clearInterval(interval);
-        setTimeout(() => navigate('/arrival'), 1500);
-      }
-    }, 1000); // move every 1s
-
-    return () => clearInterval(interval);
-  }, [isNavigating, routeCoordinates, setUserPosition, advanceStep, navigate, steps.length]);
-
+    return () => setFullscreen(false);
+  }, [setFullscreen]);
 
   if (!isNavigating) {
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center bg-surface-950 p-6 text-center">
-        <Navigation2 className="w-16 h-16 text-surface-600 mb-4" />
-        <h2 className="text-xl font-bold text-white mb-2">No Active Route</h2>
-        <p className="text-surface-400 mb-6">Please select a destination from the assistant screen.</p>
-        <Button onClick={() => navigate('/assistant')}>Back to Assistant</Button>
+      <div className="flex-1 flex flex-col items-center justify-center bg-[var(--surface-50)] p-6 text-center">
+        <Navigation2 width={64} height={64} color="var(--surface-300)" className="mb-4" />
+        <h2 className="text-xl font-bold text-[var(--surface-800)] mb-2">No Active Route</h2>
+        <p className="text-base text-[var(--surface-500)] mb-6">Please select a destination from the assistant screen.</p>
+        <Button onClick={() => navigate('/app/chat')}>Back to Assistant</Button>
       </div>
     );
   }
 
   const currentStep = steps[currentStepIndex];
-
-  // Map coordinates to Leaflet LatLng [y, x] format
-  const polylinePositions: L.LatLngTuple[] = routeCoordinates.map(([x, y]: [number, number]) => [y, x]);
+  const polylinePositions: L.LatLngTuple[] = routeCoordinates.map(([x, y]) => [y, x]);
 
   return (
-    <div className="h-dvh flex flex-col bg-surface-950 relative overflow-hidden">
-      {/* Top Status Bar */}
-      <div className="absolute top-0 inset-x-0 z-[400] p-4 pointer-events-none">
-        <div className="glass-card rounded-[var(--radius-lg)] p-4 flex items-center justify-between pointer-events-auto">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-primary-400 font-bold text-xl">{remainingDistance} {t('common.meters')}</span>
-              <span className="w-1 h-1 rounded-full bg-surface-600" />
-              <span className="text-surface-300 text-sm">{eta} {t('common.minutes')} ETA</span>
-            </div>
-            <h2 className="text-white font-semibold text-lg leading-tight flex items-center gap-2">
-              <ArrowRightCircle className="w-5 h-5 text-primary-400" />
-              {currentStep ? t(currentStep.instructionKey) : t('navigation.instructions.destination')}
-            </h2>
-            {currentStep?.landmark && (
-              <p className="text-sm text-surface-400 mt-0.5 ml-7">near {currentStep.landmark}</p>
-            )}
-          </div>
-          <button
-            onClick={() => { stopNavigation(); navigate('/assistant'); }}
-            className="w-10 h-10 rounded-full bg-surface-700/50 flex items-center justify-center text-surface-300 hover:text-white hover:bg-surface-600 transition-colors flex-shrink-0"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+    <div className={`map-page ${isFullscreen ? 'map-page-fullscreen' : ''}`}>
+      {/* Fullscreen Toggle Button */}
+      <button 
+        className="map-fullscreen-btn"
+        onClick={() => setFullscreen(!isFullscreen)}
+        aria-label={isFullscreen ? t('map.exitFullscreen') : t('map.fullscreen')}
+      >
+        {isFullscreen ? <Minimize2 width={20} height={20} /> : <Maximize2 width={20} height={20} />}
+      </button>
 
       {/* Map Container */}
-      <div className="flex-1 w-full relative z-0">
+      <div className="map-container">
         <MapContainer
           crs={L.CRS.Simple}
           bounds={bounds}
-          className="w-full h-full bg-surface-900"
+          className="w-full h-full"
           zoomControl={false}
           attributionControl={false}
           minZoom={-2}
@@ -185,85 +134,96 @@ const MapScreen: React.FC = () => {
             userPosition={userPosition} 
             shouldRecenter={shouldRecenter} 
             onRecentered={() => setShouldRecenter(false)} 
+            floorPlan={floorPlan}
           />
           
           {floorPlan && (
-            <ImageOverlay
-              url={floorPlan.imageUrl}
-              bounds={bounds}
+            <ImageOverlay url={floorPlan.imageUrl} bounds={bounds} />
+          )}
+
+          {polylinePositions.length > 0 && (
+            <Polyline 
+              positions={polylinePositions} 
+              pathOptions={{ color: 'var(--primary-600)', weight: 6, opacity: 0.8, lineCap: 'round', lineJoin: 'round', className: 'route-animated' }} 
             />
           )}
 
-          {/* Route Polyline */}
-          <Polyline 
-            positions={polylinePositions} 
-            pathOptions={{ color: '#0d9488', weight: 6, opacity: 0.8, lineCap: 'round', lineJoin: 'round', className: 'route-animated' }} 
-          />
-
-          {/* Destination Marker */}
           {routeCoordinates.length > 0 && (
-             <Marker position={[routeCoordinates[routeCoordinates.length-1][1], routeCoordinates[routeCoordinates.length-1][0]]} icon={destIcon}>
-               <Popup className="custom-popup">
-                 <strong>{destinationName}</strong>
-               </Popup>
-             </Marker>
+            <Marker position={[routeCoordinates[routeCoordinates.length-1][1], routeCoordinates[routeCoordinates.length-1][0]]} icon={destIcon}>
+              <Popup><strong>{destinationName}</strong></Popup>
+            </Marker>
           )}
 
-          {/* User Location */}
           {userPosition && (
             <BlueDot position={[userPosition.y, userPosition.x]} heading={userHeading} />
           )}
-
         </MapContainer>
       </div>
 
       {/* Floating Controls */}
-      <div className="absolute right-4 bottom-24 z-[400] flex flex-col gap-3 pointer-events-auto">
+      <div className="map-floating-controls">
         <div className="relative">
           {showFloorPicker && (
-            <div className="absolute bottom-full right-0 mb-3 bg-surface-800 border border-surface-700 rounded-[var(--radius-md)] overflow-hidden shadow-lg animate-fade-in-up">
+            <div className="absolute bottom-full right-0 mb-3 bg-[var(--surface-0)] border border-[var(--surface-200)] rounded-[var(--radius-md)] overflow-hidden shadow-lg animate-fade-in-up flex flex-col w-[120px]">
               {floorPlans.map(fp => (
                 <button
                   key={fp.floorNumber}
                   onClick={() => { setCurrentFloor(fp.floorNumber); setShowFloorPicker(false); setShouldRecenter(true); }}
-                  className={`w-full px-4 py-2 text-sm font-medium text-left transition-colors ${currentFloor === fp.floorNumber ? 'bg-primary-500/20 text-primary-400' : 'text-surface-300 hover:bg-surface-700'}`}
+                  className="w-full px-4 py-3 text-sm font-medium text-left transition-colors"
+                  style={{ 
+                    background: currentFloor === fp.floorNumber ? 'var(--primary-50)' : 'transparent',
+                    color: currentFloor === fp.floorNumber ? 'var(--primary-600)' : 'var(--surface-700)',
+                  }}
                 >
-                  Floor {fp.floorNumber}
+                  {fp.name}
                 </button>
               ))}
             </div>
           )}
-          <FAB 
-            icon={<Layers className="w-5 h-5" />} 
-            variant="secondary" 
-            onClick={() => setShowFloorPicker(!showFloorPicker)} 
-            label={`F${currentFloor}`}
-          />
+          <button className="map-fab map-fab-secondary" onClick={() => setShowFloorPicker(!showFloorPicker)}>
+            <Layers width={20} height={20} />
+          </button>
         </div>
         
-        <FAB 
-          icon={voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-surface-400" />} 
-          variant="secondary" 
-          onClick={toggleVoice} 
-        />
+        <button className="map-fab map-fab-secondary" onClick={toggleVoice}>
+          {voiceEnabled ? <Volume2 width={20} height={20} /> : <VolumeX width={20} height={20} color="var(--surface-400)" />}
+        </button>
         
-        <FAB 
-          icon={<Navigation2 className="w-5 h-5" />} 
-          variant="primary" 
-          onClick={() => setShouldRecenter(true)} 
-        />
+        <button className="map-fab map-fab-primary" onClick={() => setShouldRecenter(true)}>
+          <Navigation2 width={20} height={20} />
+        </button>
       </div>
 
-      {/* Bottom Sheet Handle (when collapsed) */}
-      {!showBottomSheet && (
-        <div 
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[400] glass-card px-6 py-2 rounded-full flex items-center gap-2 cursor-pointer animate-fade-in-up"
-          onClick={() => setShowBottomSheet(true)}
-        >
-          <span className="w-8 h-1 rounded-full bg-surface-500" />
-          <span className="text-sm font-medium text-surface-200">View Steps</span>
+      {/* Navigation Instructions Panel */}
+      <div className="map-instructions shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-10 relative">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold text-[var(--primary-600)]">{remainingDistance} {t('common.meters')}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--surface-300)]" />
+            <span className="text-sm font-medium text-[var(--surface-500)]">{eta} {t('common.minutes')} ETA</span>
+          </div>
+          <button
+            onClick={() => { stopNavigation(); navigate('/app/chat'); }}
+            className="w-8 h-8 rounded-full bg-[var(--surface-100)] flex items-center justify-center text-[var(--surface-500)] hover:text-[var(--surface-800)] hover:bg-[var(--surface-200)] transition-colors"
+          >
+            <X width={16} height={16} />
+          </button>
         </div>
-      )}
+
+        <div className="map-instruction-current" onClick={() => setShowBottomSheet(true)}>
+          <div className="map-instruction-icon">
+            <ArrowRightCircle width={24} height={24} />
+          </div>
+          <div className="flex-1">
+            <div className="map-instruction-text">
+              {currentStep ? t(currentStep.instructionKey) : t('navigation.instructions.destination')}
+            </div>
+            {currentStep?.landmark && (
+              <div className="map-instruction-distance">near {currentStep.landmark}</div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Steps Bottom Sheet */}
       <BottomSheet 
@@ -271,37 +231,60 @@ const MapScreen: React.FC = () => {
         onClose={() => setShowBottomSheet(false)}
         title={`${t('navigation.steps')} (${steps.length})`}
       >
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4 mt-2">
           {steps.map((step, idx) => {
             const isCompleted = idx < currentStepIndex;
             const isCurrent = idx === currentStepIndex;
             
             return (
-              <div key={idx} className={`flex gap-4 p-3 rounded-[var(--radius-md)] transition-colors ${isCurrent ? 'bg-primary-500/10 border border-primary-500/20' : 'opacity-70'}`}>
+              <div 
+                key={idx} 
+                className="flex gap-4 p-3 rounded-[var(--radius-md)] transition-colors"
+                style={{
+                  background: isCurrent ? 'var(--primary-50)' : 'transparent',
+                  border: isCurrent ? '1px solid var(--primary-200)' : '1px solid transparent',
+                  opacity: !isCurrent && !isCompleted ? 0.6 : 1
+                }}
+              >
                 <div className="flex flex-col items-center mt-1">
                   {isCompleted ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    <CheckCircle2 width={20} height={20} color="var(--color-success)" />
                   ) : (
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isCurrent ? 'border-primary-400' : 'border-surface-500'}`}>
-                      {isCurrent && <div className="w-2 h-2 rounded-full bg-primary-400" />}
+                    <div 
+                      className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                      style={{ borderColor: isCurrent ? 'var(--primary-400)' : 'var(--surface-300)' }}
+                    >
+                      {isCurrent && <div className="w-2 h-2 rounded-full bg-[var(--primary-400)]" />}
                     </div>
                   )}
                   {idx < steps.length - 1 && (
-                    <div className={`w-0.5 h-full my-1 ${isCompleted ? 'bg-green-500/50' : 'bg-surface-700'}`} />
+                    <div 
+                      className="w-0.5 h-full my-1" 
+                      style={{ background: isCompleted ? 'var(--color-success)' : 'var(--surface-200)', opacity: isCompleted ? 0.5 : 1 }} 
+                    />
                   )}
                 </div>
                 <div className="flex-1 pb-4">
-                  <p className={`font-semibold ${isCurrent ? 'text-primary-300' : isCompleted ? 'text-surface-400 line-through' : 'text-surface-200'}`}>
+                  <p 
+                    className="font-semibold"
+                    style={{ 
+                      color: isCurrent ? 'var(--primary-700)' : isCompleted ? 'var(--surface-400)' : 'var(--surface-700)',
+                      textDecoration: isCompleted ? 'line-through' : 'none'
+                    }}
+                  >
                     {t(step.instructionKey)}
                   </p>
                   {step.landmark && (
-                    <p className="text-sm text-surface-500 mt-1">near {step.landmark}</p>
+                    <p className="text-sm text-[var(--surface-500)] mt-1">near {step.landmark}</p>
                   )}
-                  <p className="text-xs text-surface-500 font-mono mt-1">{step.distance}m • Floor {step.floor}</p>
+                  <p className="text-xs text-[var(--surface-400)] font-mono mt-1">{step.distance}m • Floor {step.floor}</p>
                 </div>
               </div>
             );
           })}
+          {steps.length === 0 && (
+            <p className="text-center text-[var(--surface-500)] py-4">No detailed steps available.</p>
+          )}
         </div>
       </BottomSheet>
     </div>

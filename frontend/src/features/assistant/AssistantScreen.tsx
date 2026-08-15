@@ -2,11 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguageStore, useNavigationStore } from '../../shared/store';
 import { Button, Chip, Card, EmergencyBanner, Input } from '../../shared/components';
-import { getMockAIResponse, locations, getMockRoute } from '../../data/mockData';
-import {
-  Mic, MicOff, Send, Navigation, MapPin, Clock, User, ChevronRight,
-  ClipboardList, Pill, Siren, HeartPulse, Settings, Bot, UserCircle,
-} from 'lucide-react';
+import { Mic, MicOff, Send, Navigation, MapPin, Clock, User, ChevronRight, ClipboardList, Pill, Siren, HeartPulse, Bot, UserCircle } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -26,10 +22,10 @@ interface ChatMessage {
 }
 
 const chipIcons: Record<string, React.ReactNode> = {
-  registration: <ClipboardList className="w-4 h-4" />,
-  pharmacy: <Pill className="w-4 h-4" />,
-  emergency: <Siren className="w-4 h-4" />,
-  unwell: <HeartPulse className="w-4 h-4" />,
+  registration: <ClipboardList width={16} height={16} />,
+  pharmacy: <Pill width={16} height={16} />,
+  emergency: <Siren width={16} height={16} />,
+  unwell: <HeartPulse width={16} height={16} />,
 };
 
 const AssistantScreen: React.FC = () => {
@@ -53,7 +49,7 @@ const AssistantScreen: React.FC = () => {
         timestamp: new Date(),
       },
     ]);
-  }, [language]);
+  }, [language, t]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -63,7 +59,6 @@ const AssistantScreen: React.FC = () => {
   const processMessage = async (text: string) => {
     if (!text.trim()) return;
 
-    // Add user message
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       type: 'user',
@@ -74,34 +69,19 @@ const AssistantScreen: React.FC = () => {
     setInput('');
     setIsThinking(true);
 
-    // Simulate AI processing delay
-    await new Promise(resolve => setTimeout(resolve, 1200 + Math.random() * 800));
+    // Simulate API call for now since we removed mock data
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const response = getMockAIResponse(text);
-
-    if (response) {
-      const recMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'recommendation',
-        text: response.urgency === 'emergency'
-          ? t('assistant.greeting') // Will be overridden by recommendation card
-          : `Based on your description, I recommend visiting the **${response.department}** department.`,
-        timestamp: new Date(),
-        recommendation: response,
-      };
-      setMessages(prev => [...prev, recMsg]);
-    } else {
-      const clarifyMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        text: language === 'ta'
-          ? 'மன்னிக்கவும், உங்கள் அறிகுறிகளை இன்னும் விரிவாக விவரிக்க முடியுமா? எடுத்துக்காட்டாக: "எனக்கு கண் வலி" அல்லது "தலைவலி".'
-          : 'I\'m sorry, could you describe your symptoms in more detail? For example: "I have eye pain" or "I have a headache".',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, clarifyMsg]);
-    }
-
+    // Fallback response for prototype
+    const clarifyMsg: ChatMessage = {
+      id: (Date.now() + 1).toString(),
+      type: 'assistant',
+      text: language === 'ta'
+        ? 'மன்னிக்கவும், உங்கள் அறிகுறிகளை இன்னும் விரிவாக விவரிக்க முடியுமா?'
+        : 'I\'m sorry, could you describe your symptoms in more detail?',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, clarifyMsg]);
     setIsThinking(false);
   };
 
@@ -137,6 +117,7 @@ const AssistantScreen: React.FC = () => {
     }
 
     setIsListening(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = language === 'ta' ? 'ta-IN' : 'en-IN';
@@ -162,113 +143,71 @@ const AssistantScreen: React.FC = () => {
 
   const handleStartNavigation = (rec: ChatMessage['recommendation']) => {
     if (!rec) return;
-
-    const route = getMockRoute(1, rec.locationId); // From entrance (id=1)
-    if (!route) return;
-
+    
+    // Empty implementation for now - wait for real backend
     startNavigation({
       destinationNodeId: rec.locationId,
-      destinationName: locations.find(l => l.id === rec.locationId)?.name || rec.department,
+      destinationName: rec.department,
       departmentName: rec.department,
       roomNumber: rec.roomNumber,
-      steps: route.steps.map(s => ({
-        instruction: s.instruction,
-        instructionKey: s.instructionKey,
-        distance: s.distance,
-        landmark: s.landmark,
-        nodeId: s.nodeId,
-        floor: s.floor,
-      })),
-      routeCoordinates: route.coordinates,
-      totalDistance: route.distance,
-      eta: route.eta,
+      steps: [],
+      routeCoordinates: [],
+      totalDistance: 0,
+      eta: 0,
     });
-
-    navigate('/map');
-  };
-
-  const handleViewDoctors = (departmentId: number) => {
-    navigate(`/doctors/${departmentId}`);
+    navigate('/app/map');
   };
 
   return (
-    <div className="min-h-dvh flex flex-col bg-surface-950 relative">
-      {/* Header */}
-      <header className="glass sticky top-0 z-30 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
-            <Navigation className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-white leading-tight">{t('app.name')}</h1>
-            <p className="text-xs text-primary-400">{t('assistant.title')}</p>
-          </div>
-        </div>
-        <button
-          onClick={() => navigate('/settings')}
-          className="w-9 h-9 rounded-full bg-surface-800/60 flex items-center justify-center text-surface-400 hover:text-surface-200 hover:bg-surface-700/60 transition-all"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
-      </header>
+    <div className="flex-1 flex flex-col h-full bg-[var(--surface-50)]">
+      {/* Top Banner Area (Optional) */}
+      <div className="px-4 py-3 bg-[var(--surface-0)] border-b border-[var(--surface-200)] shadow-sm z-10">
+        <h2 className="text-lg font-bold text-[var(--surface-800)]">{t('assistant.title')}</h2>
+      </div>
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="chat-container">
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-2.5 animate-fade-in-up ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={msg.id} className={`flex gap-3 animate-fade-in-up ${msg.type === 'user' ? 'flex-row-reverse' : ''}`}>
             {/* Avatar */}
-            {msg.type !== 'user' && (
-              <div className="w-8 h-8 rounded-full bg-primary-500/15 flex items-center justify-center flex-shrink-0 mt-1">
-                <Bot className="w-4 h-4 text-primary-400" />
-              </div>
-            )}
+            <div 
+              className="w-[36px] h-[36px] rounded-[50%] flex items-center justify-center flex-shrink-0 mt-1 shadow-sm"
+              style={{
+                background: msg.type === 'user' ? 'var(--surface-200)' : 'var(--primary-100)',
+                color: msg.type === 'user' ? 'var(--surface-500)' : 'var(--primary-600)',
+              }}
+            >
+              {msg.type === 'user' ? <UserCircle width={20} height={20} /> : <Bot width={20} height={20} />}
+            </div>
 
-            <div className={`max-w-[85%] ${msg.type === 'user' ? 'order-first' : ''}`}>
-              {msg.type === 'user' ? (
-                /* User bubble */
-                <div className="bg-primary-600/90 text-white px-4 py-3 rounded-[var(--radius-lg)] rounded-tr-sm shadow-md">
-                  <p className="text-sm leading-relaxed">{msg.text}</p>
-                </div>
-              ) : msg.type === 'recommendation' && msg.recommendation ? (
-                /* Recommendation Card */
+            <div className={`chat-bubble ${msg.type === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}>
+              {msg.type === 'recommendation' && msg.recommendation ? (
                 <RecommendationCard
                   recommendation={msg.recommendation}
                   onStartNavigation={() => handleStartNavigation(msg.recommendation)}
-                  onViewDoctors={() => handleViewDoctors(msg.recommendation!.departmentId)}
+                  onViewDoctors={() => navigate('/app/doctors')}
                   t={t}
                 />
               ) : (
-                /* Assistant bubble */
-                <div className="bg-surface-800/70 text-surface-200 px-4 py-3 rounded-[var(--radius-lg)] rounded-tl-sm border border-surface-700/40">
-                  <p className="text-sm leading-relaxed">{msg.text}</p>
-                </div>
+                <p style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</p>
               )}
             </div>
-
-            {/* User avatar */}
-            {msg.type === 'user' && (
-              <div className="w-8 h-8 rounded-full bg-surface-700/60 flex items-center justify-center flex-shrink-0 mt-1">
-                <UserCircle className="w-4 h-4 text-surface-400" />
-              </div>
-            )}
           </div>
         ))}
 
         {/* Thinking indicator */}
         {isThinking && (
-          <div className="flex gap-2.5 animate-fade-in">
-            <div className="w-8 h-8 rounded-full bg-primary-500/15 flex items-center justify-center flex-shrink-0">
-              <Bot className="w-4 h-4 text-primary-400" />
+          <div className="flex gap-3 animate-fade-in">
+            <div className="w-[36px] h-[36px] rounded-[50%] flex items-center justify-center flex-shrink-0 mt-1 bg-[var(--primary-100)] text-[var(--primary-600)] shadow-sm">
+              <Bot width={20} height={20} />
             </div>
-            <div className="bg-surface-800/70 px-4 py-3 rounded-[var(--radius-lg)] rounded-tl-sm border border-surface-700/40">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 rounded-full bg-primary-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-primary-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-primary-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-                <span className="text-sm text-surface-400">{t('assistant.thinking')}</span>
+            <div className="chat-bubble chat-bubble-assistant flex items-center gap-2">
+              <div className="thinking-dots">
+                <span className="thinking-dot" />
+                <span className="thinking-dot" />
+                <span className="thinking-dot" />
               </div>
+              <span className="text-sm text-[var(--surface-500)] ml-2">{t('assistant.thinking')}</span>
             </div>
           </div>
         )}
@@ -276,16 +215,18 @@ const AssistantScreen: React.FC = () => {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Bottom Bar */}
-      <div className="sticky bottom-0 glass border-t border-surface-700/40 px-4 pt-3 pb-5 space-y-3">
+      {/* Bottom Input Area */}
+      <div className="chat-input-area">
         {/* Emergency Banner */}
-        <EmergencyBanner
-          label={t('assistant.emergency')}
-          onClick={() => handleChip('emergency')}
-        />
+        <div className="mb-3">
+          <EmergencyBanner
+            label={t('assistant.emergency')}
+            onClick={() => handleChip('emergency')}
+          />
+        </div>
 
-        {/* Quick Chips */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {/* Quick Chips Row */}
+        <div className="frequent-questions scrollbar-hide mb-3">
           {['registration', 'pharmacy', 'emergency', 'unwell'].map((key) => (
             <Chip
               key={key}
@@ -296,42 +237,38 @@ const AssistantScreen: React.FC = () => {
           ))}
         </div>
 
-        {/* Input Bar */}
-        <div className="flex items-center gap-2">
+        {/* Input Field & Mic */}
+        <div className="chat-input-row">
           <Input
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('assistant.placeholder')}
-            className={`flex-1 ${language === 'ta' ? 'font-tamil' : ''}`}
+            className={language === 'ta' ? 'font-tamil' : ''}
             rightElement={
               input.trim() ? (
-                <button
-                  onClick={handleSend}
-                  className="w-9 h-9 rounded-full bg-primary-500 flex items-center justify-center text-white hover:bg-primary-400 transition-all active:scale-90"
-                >
-                  <Send className="w-4 h-4" />
+                <button onClick={handleSend} className="send-btn" type="button" aria-label="Send">
+                  <Send width={18} height={18} style={{ transform: 'translateX(-1px) translateY(1px)' }} />
                 </button>
               ) : undefined
             }
           />
 
-          {/* Mic Button */}
           <button
             onClick={handleVoice}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 flex-shrink-0 ${
-              isListening
-                ? 'bg-red-500 text-white shadow-lg shadow-red-500/30 animate-pulse'
-                : 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-600/30 hover:shadow-primary-500/40'
-            }`}
+            className={`mic-btn ${isListening ? 'mic-btn-listening' : ''}`}
+            type="button"
+            aria-label={isListening ? "Stop listening" : "Start speaking"}
           >
-            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {isListening ? <MicOff width={20} height={20} /> : <Mic width={20} height={20} />}
           </button>
         </div>
-
+        
         {isListening && (
-          <p className="text-center text-sm text-red-400 animate-pulse">{t('assistant.listening')}</p>
+          <p className="text-center text-xs font-medium text-[var(--color-error)] mt-2 animate-pulse">
+            {t('assistant.listening')}
+          </p>
         )}
       </div>
     </div>
@@ -351,83 +288,70 @@ const RecommendationCard: React.FC<{
 
   return (
     <Card
-      variant="glass"
-      className={`overflow-hidden ${isEmergency ? 'border-red-500/40' : 'border-primary-500/20'}`}
+      style={{ 
+        overflow: 'hidden', 
+        borderColor: isEmergency ? 'var(--color-error)' : 'var(--primary-200)',
+        borderWidth: isEmergency ? 2 : 1,
+        marginTop: 8
+      }}
     >
-      {/* Urgency Bar */}
       {isEmergency && (
-        <div className="bg-red-500/20 px-4 py-2 flex items-center gap-2 border-b border-red-500/20">
-          <Siren className="w-4 h-4 text-red-400" />
-          <span className="text-sm font-semibold text-red-400">Emergency Department</span>
+        <div style={{ background: 'var(--color-error-bg)', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--color-error)' }}>
+          <Siren width={16} height={16} color="var(--color-error)" />
+          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-error)' }}>Emergency Department</span>
         </div>
       )}
 
-      <div className="p-4 space-y-3">
-        {/* Department */}
+      <div style={{ padding: 16 }}>
         <div>
-          <p className="text-xs text-surface-400 uppercase tracking-wider mb-1">
+          <p style={{ fontSize: '0.75rem', color: 'var(--surface-500)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
             {t('assistant.recommendation.department')}
           </p>
-          <h3 className={`text-xl font-bold ${isEmergency ? 'text-red-400' : 'text-white'}`}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: isEmergency ? 'var(--color-error)' : 'var(--surface-900)' }}>
             {recommendation.department}
           </h3>
         </div>
 
-        {/* Doctor Info */}
-        <div className="flex items-center gap-3 bg-surface-800/50 rounded-[var(--radius-md)] p-3">
-          <div className="w-10 h-10 rounded-full bg-primary-500/15 flex items-center justify-center flex-shrink-0">
-            <User className="w-5 h-5 text-primary-400" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface-50)', borderRadius: 'var(--radius-md)', padding: 12, marginTop: 12, marginBottom: 16 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--primary-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <User width={20} height={20} color="var(--primary-600)" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-surface-100 truncate">{recommendation.doctorName}</p>
-            <div className="flex items-center gap-3 text-xs text-surface-400 mt-0.5">
-              <span className="flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> {t('assistant.recommendation.room')} {recommendation.roomNumber}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--surface-800)' }} className="truncate">
+              {recommendation.doctorName}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.75rem', color: 'var(--surface-500)', marginTop: 4 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <MapPin width={12} height={12} /> {t('assistant.recommendation.room')} {recommendation.roomNumber}
               </span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" /> ~{recommendation.walkTime} {t('common.minutes')}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Clock width={12} height={12} /> ~{recommendation.walkTime} {t('common.minutes')}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Confidence */}
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-surface-700 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-700 ${isEmergency ? 'bg-red-500' : 'bg-primary-500'}`}
-              style={{ width: `${recommendation.confidence * 100}%` }}
-            />
-          </div>
-          <span className="text-xs text-surface-400 tabular-nums">
-            {Math.round(recommendation.confidence * 100)}%
-          </span>
-        </div>
-
-        {/* Disclaimer */}
-        <p className="text-xs text-surface-500 italic leading-relaxed">
-          {t('assistant.recommendation.disclaimer')}
-        </p>
-
-        {/* Actions */}
-        <div className="flex gap-2 pt-1">
+        <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
           <Button
             variant={isEmergency ? 'danger' : 'primary'}
             size="md"
             fullWidth
             onClick={onStartNavigation}
-            icon={<Navigation className="w-4 h-4" />}
+            icon={<Navigation width={16} height={16} />}
           >
             {t('assistant.recommendation.startNav')}
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            fullWidth
+            onClick={onViewDoctors}
+            icon={<ChevronRight width={16} height={16} />}
+            style={{ color: 'var(--primary-600)' }}
+          >
+            {t('assistant.recommendation.viewDoctors')}
+          </Button>
         </div>
-        <button
-          onClick={onViewDoctors}
-          className="w-full flex items-center justify-center gap-1 text-sm text-primary-400 hover:text-primary-300 transition-colors py-1"
-        >
-          {t('assistant.recommendation.viewDoctors')}
-          <ChevronRight className="w-4 h-4" />
-        </button>
       </div>
     </Card>
   );
