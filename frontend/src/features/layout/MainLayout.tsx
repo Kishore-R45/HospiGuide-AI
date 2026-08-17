@@ -46,7 +46,7 @@ export const MainLayout: React.FC = () => {
       )}
 
       {/* Main Content Area */}
-      <main className={`flex-1 flex flex-col min-h-0 ${isFullscreen ? '' : 'pb-[calc(var(--bottom-nav-height)+var(--safe-area-bottom))]'}`}>
+      <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <Outlet />
       </main>
 

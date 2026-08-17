@@ -17,7 +17,7 @@ const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[var(--surface-50)] overflow-y-auto pb-6">
+    <div className="flex-1 flex flex-col min-h-0 bg-[var(--surface-50)] overflow-y-auto" style={{ paddingBottom: 'calc(var(--bottom-nav-height) + var(--safe-area-bottom) + 32px)' }}>
       <div className="sticky top-0 z-10 bg-[var(--surface-0)] border-b border-[var(--surface-200)] shadow-sm px-4 pt-4 pb-3 mb-6">
         <h2 className="text-xl font-bold text-[var(--surface-900)]">{t('settings.title')}</h2>
       </div>

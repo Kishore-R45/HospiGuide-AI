@@ -34,7 +34,7 @@ const DoctorScreen: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[var(--surface-50)]">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[var(--surface-50)]">
       {/* Header & Search */}
       <div className="sticky top-0 z-10 bg-[var(--surface-0)] border-b border-[var(--surface-200)] shadow-sm">
         <div className="px-4 pt-4 pb-3">
@@ -50,7 +50,7 @@ const DoctorScreen: React.FC = () => {
       </div>
 
       {/* Departments List */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto min-h-0 p-4" style={{ paddingBottom: 'calc(var(--bottom-nav-height) + var(--safe-area-bottom) + 24px)' }}>
         {departments.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-60">
             <Stethoscope width={48} height={48} color="var(--surface-400)" className="mb-4" />

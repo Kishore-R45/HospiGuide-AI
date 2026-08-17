@@ -175,7 +175,7 @@ const AssistantScreen: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[var(--surface-50)]">
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[var(--surface-50)]">
       {/* Top Banner Area (Optional) */}
       <div className="px-4 py-3 bg-[var(--surface-0)] border-b border-[var(--surface-200)] shadow-sm z-10">
         <h2 className="text-lg font-bold text-[var(--surface-800)]">{t('assistant.title')}</h2>
@@ -184,11 +184,14 @@ const AssistantScreen: React.FC = () => {
       {/* Chat Messages */}
       <div className="chat-container">
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-3 animate-fade-in-up ${msg.type === 'user' ? 'flex-row-reverse' : ''}`}>
+          <div key={msg.id} className={`flex w-full gap-3 animate-fade-in-up items-start ${msg.type === 'user' ? 'flex-row-reverse' : ''}`}>
             {/* Avatar */}
             <div 
-              className="w-[36px] h-[36px] rounded-[50%] flex items-center justify-center flex-shrink-0 mt-1 shadow-sm"
+              className="flex items-center justify-center flex-shrink-0 mt-1 shadow-sm"
               style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
                 background: msg.type === 'user' ? 'var(--surface-200)' : 'var(--primary-100)',
                 color: msg.type === 'user' ? 'var(--surface-500)' : 'var(--primary-600)',
               }}
@@ -213,8 +216,11 @@ const AssistantScreen: React.FC = () => {
 
         {/* Thinking indicator */}
         {isThinking && (
-          <div className="flex gap-3 animate-fade-in">
-            <div className="w-[36px] h-[36px] rounded-[50%] flex items-center justify-center flex-shrink-0 mt-1 bg-[var(--primary-100)] text-[var(--primary-600)] shadow-sm">
+          <div className="flex w-full gap-3 animate-fade-in items-start">
+            <div 
+              className="flex items-center justify-center flex-shrink-0 mt-1 bg-[var(--primary-100)] text-[var(--primary-600)] shadow-sm"
+              style={{ width: 36, height: 36, borderRadius: '50%' }}
+            >
               <Bot width={20} height={20} />
             </div>
             <div className="chat-bubble chat-bubble-assistant flex items-center gap-2">
