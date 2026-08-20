@@ -31,12 +31,72 @@ const DoctorScreen: React.FC = () => {
     dept.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const translateData = (name: string) => {
+    if (!name) return name;
+    const key = `data.${name}`;
+    const translated = t(key);
+    return translated === key ? name : translated;
+  };
+
   const doctors = doctorsData.map(doc => {
-    // Simple availability logic: just marking everyone available for now.
-    // In a real app, parse `doc.timing` and `doc.days` against current Date.
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const ist = new Date(utc + (3600000 * 5.5)); // IST is UTC+5:30
+    
+    const currentDayIndex = ist.getDay(); 
+    const daysMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    let isAvailableNow = false;
+    
+    if (doc.days && doc.timing) {
+      const timingClean = doc.timing.trim().toLowerCase();
+      if (timingClean === '24 hours' || timingClean === '24 hrs' || timingClean === '00:00-24:00') {
+        isAvailableNow = true;
+      } else {
+        const [startDay, endDay] = doc.days.split('-');
+        const startIndex = daysMap.indexOf(startDay?.trim());
+        const endIndex = daysMap.indexOf((endDay || startDay)?.trim());
+        
+        const validDays: number[] = [];
+        if (startIndex !== -1 && endIndex !== -1) {
+          let i = startIndex;
+          while (true) {
+            validDays.push(i);
+            if (i === endIndex) break;
+            i = (i + 1) % 7;
+          }
+        }
+        
+        if (validDays.includes(currentDayIndex)) {
+          const [startTime, endTime] = doc.timing.split('-');
+          if (startTime && endTime) {
+             const currentTotalMinutes = ist.getHours() * 60 + ist.getMinutes();
+             const [startH, startM] = startTime.split(':').map(Number);
+             const startTotalMinutes = startH * 60 + startM;
+             const [endH, endM] = endTime.split(':').map(Number);
+             const endTotalMinutes = endH * 60 + endM;
+             
+             if (startTotalMinutes > endTotalMinutes) {
+               // Overnight shift (e.g., 22:00-08:00)
+               if (currentTotalMinutes >= startTotalMinutes || currentTotalMinutes <= endTotalMinutes) {
+                 isAvailableNow = true;
+               }
+             } else {
+               // Standard daytime shift (e.g., 08:00-16:00)
+               if (currentTotalMinutes >= startTotalMinutes && currentTotalMinutes <= endTotalMinutes) {
+                 isAvailableNow = true;
+               }
+             }
+          }
+        }
+      }
+    }
+
     return {
       ...doc,
-      isAvailableNow: true
+      isAvailableNow,
+      translatedSpecialty: translateData(doc.specialty),
+      translatedSpecialization: translateData(doc.specialization)
     };
   });
 
@@ -88,7 +148,7 @@ const DoctorScreen: React.FC = () => {
                   <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-100 text-primary-600 mr-3 shrink-0">
                     <Stethoscope width={20} height={20} />
                   </div>
-                  <div className="flex-1 text-[15px] font-bold text-surface-800 text-left">{dept.name}</div>
+                  <div className="flex-1 text-[15px] font-bold text-surface-800 text-left">{translateData(dept.name)}</div>
                   <div className="text-xs font-semibold text-primary-600 bg-primary-100 px-2.5 py-1 rounded-full mr-3">{deptDoctors.length} Doctors</div>
                   <ChevronDown
                     width={20}
@@ -105,22 +165,30 @@ const DoctorScreen: React.FC = () => {
                     {deptDoctors.map((doc) => (
                       <div 
                         key={doc.id} 
-                        className={`flex items-center p-3 rounded-lg mb-1 cursor-pointer transition-colors duration-200 hover:bg-surface-50 ${!doc.isAvailableNow ? 'opacity-60 grayscale hover:bg-transparent cursor-not-allowed' : ''}`}
+                        className={`flex items-start justify-between gap-3 p-3 rounded-xl mb-1.5 cursor-pointer transition-colors duration-200 hover:bg-surface-50 ${!doc.isAvailableNow ? 'opacity-70 grayscale-[20%]' : ''}`}
                         onClick={() => setSelectedDoctor(doc)}
                       >
-                        <div className="w-10 h-10 rounded-full bg-surface-100 flex items-center justify-center text-surface-400 mr-3 shrink-0">
-                          <User width={20} height={20} />
-                        </div>
-                        <div className="flex-1 pr-3">
-                          <div className="text-[15px] font-semibold text-surface-800">{doc.name}</div>
-                          <div className="text-[13px] text-surface-500 flex items-center gap-2 mt-1">
-                            <MapPin width={12} height={12} /> Room {doc.room_number}
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <div className="w-10 h-10 rounded-full bg-surface-100 flex items-center justify-center text-surface-400 shrink-0 mt-0.5">
+                            <User width={20} height={20} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[15px] font-bold text-surface-900 leading-snug break-words">{doc.name}</div>
+                            {doc.translatedSpecialization && (
+                              <div className="text-[13px] text-surface-500 font-medium mt-0.5 leading-snug break-words">{doc.translatedSpecialization}</div>
+                            )}
+                            <div className="text-xs text-surface-500 flex items-center gap-1 mt-1 font-medium">
+                              <MapPin width={12} height={12} className="shrink-0 text-surface-400" />
+                              <span>Room {doc.room_number}</span>
+                            </div>
                           </div>
                         </div>
-                        <StatusBadge
-                          status={doc.isAvailableNow ? 'available' : 'unavailable'}
-                          label={doc.isAvailableNow ? t('doctors.available') : t('doctors.unavailable')}
-                        />
+                        <div className="shrink-0 pt-0.5">
+                          <StatusBadge
+                            status={doc.isAvailableNow ? 'available' : 'unavailable'}
+                            label={doc.isAvailableNow ? t('doctors.available') : t('doctors.unavailable')}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -148,7 +216,7 @@ const DoctorScreen: React.FC = () => {
               <div>
                 <h3 className="text-xl font-bold text-surface-900">{selectedDoctor.name}</h3>
                 <p className="text-sm text-surface-500 font-medium mt-1">
-                  {dept?.name}
+                  {dept ? translateData(dept.name) : ''}
                 </p>
               </div>
             </div>

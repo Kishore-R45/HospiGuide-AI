@@ -63,7 +63,17 @@ INSERT INTO doctors (name, department_id, specialty, specialization, room_number
 ('Dr. Revathi Menon', 14, 'Obstetrics', 'Obstetrician', 'OBG-201', '09:00-16:00', 'Mon-Sat'),
 ('Dr. Swetha R', 15, 'Gynaecology', 'Gynaecologist', 'GYN-202', '16:00-22:00', 'Mon-Sat'),
 ('Dr. Priyanka Das', 16, 'Maternity', 'Obstetrician', 'MAT-301', '09:00-15:00', 'Mon-Sat'),
-('Dr. Joseph Mathew', 16, 'Maternity', 'Obstetrician', 'MAT-302', '15:00-21:00', 'Mon-Sat');
+('Dr. Joseph Mathew', 16, 'Maternity', 'Obstetrician', 'MAT-302', '15:00-21:00', 'Mon-Sat'),
+('Pharm. Ramesh Kumar', 1, 'Pharmacy', 'Chief Pharmacist', 'P-101', '08:00-16:00', 'Mon-Sat'),
+('Pharm. Sangeetha V', 1, 'Pharmacy', 'Clinical Pharmacist', 'P-101', '16:00-22:00', 'Mon-Sat'),
+('Pharm. Vijay Anand', 1, 'Pharmacy', 'Night Pharmacist', 'P-101', '22:00-08:00', 'Mon-Sun'),
+('Pharm. Divya Bharathi', 1, 'Pharmacy', 'Sunday Pharmacist', 'P-101', '08:00-22:00', 'Sun'),
+('Pharm. Abdul Rahman', 2, 'Pharmacy', 'Inpatient Pharmacist', 'P-201', '08:00-20:00', 'Mon-Sun'),
+('Pharm. Karthik M', 2, 'Pharmacy', 'Night Inpatient Pharmacist', 'P-201', '20:00-08:00', 'Mon-Sun'),
+('Pharm. Venkatesh', 3, 'Pharmacy', 'Store Manager', 'P-301', '08:00-18:00', 'Mon-Sat'),
+('Dr. Vikram Sethi', 7, 'General Medicine', 'Night Duty Physician', 'GM-101', '22:00-09:00', 'Mon-Sun'),
+('Dr. Gayatri Sundaram', 7, 'General Medicine', 'Sunday General Physician', 'GM-102', '09:00-22:00', 'Sun'),
+('Dr. Shalini Mukund', 13, 'Paediatrics', 'Emergency Paediatrician', 'PED-101', '22:00-09:00', 'Mon-Sun');
 
 -- Insert Pharmacy Services
 INSERT INTO pharmacy_services (service_name, block_id, floor, room_number, timing, description) VALUES
