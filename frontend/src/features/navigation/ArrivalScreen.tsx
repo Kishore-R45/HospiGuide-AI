@@ -34,7 +34,7 @@ const ArrivalScreen: React.FC = () => {
           {t('arrival.title')}
         </h1>
         
-        <div className="glass-card rounded-[var(--radius-lg)] p-6 w-full mb-10 animate-fade-in-up delay-200">
+        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 w-full mb-10 animate-fade-in-up delay-200">
           <p className="text-surface-300 text-sm mb-2">You have reached</p>
           <h2 className="text-2xl font-bold text-primary-400 mb-1">{departmentName || 'Destination'}</h2>
           {roomNumber && (

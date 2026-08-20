@@ -25,48 +25,47 @@ const PermissionsScreen: React.FC = () => {
   };
 
   return (
-    <div className="page-center" style={{ padding: 'var(--space-xl)' }}>
+    <div className="flex flex-col items-center justify-center min-h-[100dvh] p-6 bg-surface-50">
       <div className="flex flex-col items-center w-full max-w-[480px] animate-fade-in-up">
         <div 
-          className="mb-6 flex items-center justify-center rounded-[var(--radius-full)]" 
-          style={{ width: 64, height: 64, background: 'var(--primary-50)', color: 'var(--primary-600)' }}
+          className="mb-6 flex items-center justify-center rounded-full w-16 h-16 bg-primary-50 text-primary-600" 
         >
           <ShieldCheckIcon />
         </div>
         
-        <h1 className="text-2xl font-bold mb-2 text-center" style={{ color: 'var(--surface-900)' }}>
+        <h1 className="text-2xl font-bold mb-2 text-center text-surface-900">
           {t('permissions.title')}
         </h1>
-        <p className="text-base text-center mb-8" style={{ color: 'var(--surface-500)' }}>
+        <p className="text-base text-center mb-8 text-surface-500">
           {t('permissions.subtitle')}
         </p>
 
-        <div className="w-full card mb-8" style={{ overflow: 'hidden' }}>
-          <div className="permission-item">
-            <div className="permission-icon">
+        <div className="w-full bg-surface-0 border border-surface-200 rounded-lg shadow-card mb-8 overflow-hidden">
+          <div className="flex items-start p-4 border-b border-surface-100">
+            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary-50 text-primary-600 mr-4 shrink-0">
               <Bluetooth width={24} height={24} />
             </div>
             <div>
-              <div className="permission-title">{t('permissions.bluetooth')}</div>
-              <div className="permission-desc">{t('permissions.bluetoothDesc')}</div>
+              <div className="text-[15px] font-bold text-surface-800 mb-1">{t('permissions.bluetooth')}</div>
+              <div className="text-[13px] text-surface-500 leading-relaxed">{t('permissions.bluetoothDesc')}</div>
             </div>
           </div>
-          <div className="permission-item">
-            <div className="permission-icon">
+          <div className="flex items-start p-4 border-b border-surface-100">
+            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary-50 text-primary-600 mr-4 shrink-0">
               <MapPin width={24} height={24} />
             </div>
             <div>
-              <div className="permission-title">{t('permissions.location')}</div>
-              <div className="permission-desc">{t('permissions.locationDesc')}</div>
+              <div className="text-[15px] font-bold text-surface-800 mb-1">{t('permissions.location')}</div>
+              <div className="text-[13px] text-surface-500 leading-relaxed">{t('permissions.locationDesc')}</div>
             </div>
           </div>
-          <div className="permission-item">
-            <div className="permission-icon">
+          <div className="flex items-start p-4">
+            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary-50 text-primary-600 mr-4 shrink-0">
               <Mic width={24} height={24} />
             </div>
             <div>
-              <div className="permission-title">{t('permissions.microphone')}</div>
-              <div className="permission-desc">{t('permissions.microphoneDesc')}</div>
+              <div className="text-[15px] font-bold text-surface-800 mb-1">{t('permissions.microphone')}</div>
+              <div className="text-[13px] text-surface-500 leading-relaxed">{t('permissions.microphoneDesc')}</div>
             </div>
           </div>
         </div>

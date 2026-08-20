@@ -26,7 +26,7 @@ export const MainLayout: React.FC = () => {
   };
 
   return (
-    <div className="page">
+    <div className="flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden relative bg-surface-0">
       {/* Global Toast */}
       {toast && (
         <Toast
@@ -39,9 +39,9 @@ export const MainLayout: React.FC = () => {
 
       {/* Header - Hidden in fullscreen mode */}
       {!isFullscreen && (
-        <header className="app-header">
-          <img src="/assets/Logo- HospiGuide AI.png" alt="Logo" className="header-logo" />
-          <h1 className="header-title">HospiGuide AI</h1>
+        <header className="sticky top-0 z-[100] h-[56px] flex items-center px-4 bg-white/88 backdrop-blur-md border-b border-surface-200 shrink-0">
+          <img src="/assets/Logo- HospiGuide AI.png" alt="Logo" className="w-8 h-8 mr-3 object-contain" />
+          <h1 className="text-lg font-bold text-surface-900 m-0">HospiGuide AI</h1>
         </header>
       )}
 
@@ -52,34 +52,34 @@ export const MainLayout: React.FC = () => {
 
       {/* Bottom Navigation - Hidden in fullscreen mode */}
       {!isFullscreen && (
-        <nav className="bottom-nav">
+        <nav className="fixed bottom-0 left-0 right-0 h-[calc(64px+env(safe-area-inset-bottom))] bg-surface-0 border-t border-surface-200 flex justify-around items-center px-2 pb-[env(safe-area-inset-bottom)] z-[100] transition-transform duration-300">
           <button
-            className={`bottom-nav-item ${activeTab === 'chat' ? 'bottom-nav-item-active' : ''}`}
+            className={`flex flex-col items-center justify-center w-[22%] min-w-[64px] h-[56px] cursor-pointer select-none transition-colors duration-200 ${activeTab === 'chat' ? 'text-primary-600' : 'text-surface-400 hover:text-surface-600'}`}
             onClick={() => handleTabClick('chat', '/app/chat')}
           >
-            <MessageSquare className="bottom-nav-icon" />
-            <span className="bottom-nav-label">{t('nav.chatbot')}</span>
+            <MessageSquare className={`w-6 h-6 mb-1 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${activeTab === 'chat' ? 'scale-110' : ''}`} />
+            <span className="text-[10px] font-medium tracking-[0.01em]">{t('nav.chatbot')}</span>
           </button>
           <button
-            className={`bottom-nav-item ${activeTab === 'map' ? 'bottom-nav-item-active' : ''}`}
+            className={`flex flex-col items-center justify-center w-[22%] min-w-[64px] h-[56px] cursor-pointer select-none transition-colors duration-200 ${activeTab === 'map' ? 'text-primary-600' : 'text-surface-400 hover:text-surface-600'}`}
             onClick={() => handleTabClick('map', '/app/map')}
           >
-            <MapIcon className="bottom-nav-icon" />
-            <span className="bottom-nav-label">{t('nav.indoorMap')}</span>
+            <MapIcon className={`w-6 h-6 mb-1 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${activeTab === 'map' ? 'scale-110' : ''}`} />
+            <span className="text-[10px] font-medium tracking-[0.01em]">{t('nav.indoorMap')}</span>
           </button>
           <button
-            className={`bottom-nav-item ${activeTab === 'doctors' ? 'bottom-nav-item-active' : ''}`}
+            className={`flex flex-col items-center justify-center w-[22%] min-w-[64px] h-[56px] cursor-pointer select-none transition-colors duration-200 ${activeTab === 'doctors' ? 'text-primary-600' : 'text-surface-400 hover:text-surface-600'}`}
             onClick={() => handleTabClick('doctors', '/app/doctors')}
           >
-            <Stethoscope className="bottom-nav-icon" />
-            <span className="bottom-nav-label">{t('nav.doctors')}</span>
+            <Stethoscope className={`w-6 h-6 mb-1 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${activeTab === 'doctors' ? 'scale-110' : ''}`} />
+            <span className="text-[10px] font-medium tracking-[0.01em]">{t('nav.doctors')}</span>
           </button>
           <button
-            className={`bottom-nav-item ${activeTab === 'settings' ? 'bottom-nav-item-active' : ''}`}
+            className={`flex flex-col items-center justify-center w-[22%] min-w-[64px] h-[56px] cursor-pointer select-none transition-colors duration-200 ${activeTab === 'settings' ? 'text-primary-600' : 'text-surface-400 hover:text-surface-600'}`}
             onClick={() => handleTabClick('settings', '/app/settings')}
           >
-            <Settings className="bottom-nav-icon" />
-            <span className="bottom-nav-label">{t('nav.settings')}</span>
+            <Settings className={`w-6 h-6 mb-1 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${activeTab === 'settings' ? 'scale-110' : ''}`} />
+            <span className="text-[10px] font-medium tracking-[0.01em]">{t('nav.settings')}</span>
           </button>
         </nav>
       )}

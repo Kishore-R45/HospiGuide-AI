@@ -95,10 +95,10 @@ const MapScreen: React.FC = () => {
 
   if (!isNavigating) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-[var(--surface-50)] p-6 text-center">
-        <Navigation2 width={64} height={64} color="var(--surface-300)" className="mb-4" />
-        <h2 className="text-xl font-bold text-[var(--surface-800)] mb-2">No Active Route</h2>
-        <p className="text-base text-[var(--surface-500)] mb-6">Please select a destination from the assistant screen.</p>
+      <div className="flex-1 flex flex-col items-center justify-center bg-surface-50 p-6 text-center">
+        <Navigation2 width={64} height={64} className="text-surface-300 mb-4" />
+        <h2 className="text-xl font-bold text-surface-800 mb-2">No Active Route</h2>
+        <p className="text-base text-surface-500 mb-6">Please select a destination from the assistant screen.</p>
         <Button onClick={() => navigate('/app/chat')}>Back to Assistant</Button>
       </div>
     );
@@ -108,10 +108,10 @@ const MapScreen: React.FC = () => {
   const polylinePositions: L.LatLngTuple[] = routeCoordinates.map(([x, y]) => [y, x]);
 
   return (
-    <div className={`map-page ${isFullscreen ? 'map-page-fullscreen' : ''}`}>
+    <div className={`flex-1 flex flex-col min-h-0 bg-surface-50 relative overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[999] bg-surface-0' : ''}`}>
       {/* Fullscreen Toggle Button */}
       <button 
-        className="map-fullscreen-btn"
+        className="absolute top-4 right-4 z-[400] w-10 h-10 bg-surface-0 rounded-lg shadow-md flex items-center justify-center text-surface-600 transition-colors duration-200 hover:bg-surface-50"
         onClick={() => setFullscreen(!isFullscreen)}
         aria-label={isFullscreen ? t('map.exitFullscreen') : t('map.fullscreen')}
       >
@@ -119,7 +119,7 @@ const MapScreen: React.FC = () => {
       </button>
 
       {/* Map Container */}
-      <div className="map-container">
+      <div className="flex-1 w-full h-full min-h-[50vh] bg-surface-100">
         <MapContainer
           crs={L.CRS.Simple}
           bounds={bounds}
@@ -144,7 +144,7 @@ const MapScreen: React.FC = () => {
           {polylinePositions.length > 0 && (
             <Polyline 
               positions={polylinePositions} 
-              pathOptions={{ color: 'var(--primary-600)', weight: 6, opacity: 0.8, lineCap: 'round', lineJoin: 'round', className: 'route-animated' }} 
+              pathOptions={{ color: '#0d9488', weight: 6, opacity: 0.8, lineCap: 'round', lineJoin: 'round' }} 
             />
           )}
 
@@ -161,65 +161,61 @@ const MapScreen: React.FC = () => {
       </div>
 
       {/* Floating Controls */}
-      <div className="map-floating-controls">
+      <div className="absolute right-4 bottom-32 z-[400] flex flex-col gap-3 pointer-events-auto">
         <div className="relative">
           {showFloorPicker && (
-            <div className="absolute bottom-full right-0 mb-3 bg-[var(--surface-0)] border border-[var(--surface-200)] rounded-[var(--radius-md)] overflow-hidden shadow-lg animate-fade-in-up flex flex-col w-[120px]">
+            <div className="absolute bottom-full right-0 mb-3 bg-surface-0 border border-surface-200 rounded-md overflow-hidden shadow-lg animate-fade-in-up flex flex-col w-[120px]">
               {floorPlans.map(fp => (
                 <button
                   key={fp.floorNumber}
                   onClick={() => { setCurrentFloor(fp.floorNumber); setShowFloorPicker(false); setShouldRecenter(true); }}
-                  className="w-full px-4 py-3 text-sm font-medium text-left transition-colors"
-                  style={{ 
-                    background: currentFloor === fp.floorNumber ? 'var(--primary-50)' : 'transparent',
-                    color: currentFloor === fp.floorNumber ? 'var(--primary-600)' : 'var(--surface-700)',
-                  }}
+                  className={`w-full px-4 py-3 text-sm font-medium text-left transition-colors ${currentFloor === fp.floorNumber ? 'bg-primary-50 text-primary-600' : 'bg-transparent text-surface-700 hover:bg-surface-50'}`}
                 >
                   {fp.name}
                 </button>
               ))}
             </div>
           )}
-          <button className="map-fab map-fab-secondary" onClick={() => setShowFloorPicker(!showFloorPicker)}>
+          <button className="w-12 h-12 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.15)] flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 bg-surface-0 text-primary-600" onClick={() => setShowFloorPicker(!showFloorPicker)}>
             <Layers width={20} height={20} />
           </button>
         </div>
         
-        <button className="map-fab map-fab-secondary" onClick={toggleVoice}>
-          {voiceEnabled ? <Volume2 width={20} height={20} /> : <VolumeX width={20} height={20} color="var(--surface-400)" />}
+        <button className="w-12 h-12 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.15)] flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 bg-surface-0 text-primary-600" onClick={toggleVoice}>
+          {voiceEnabled ? <Volume2 width={20} height={20} /> : <VolumeX width={20} height={20} className="text-surface-400" />}
         </button>
         
-        <button className="map-fab map-fab-primary" onClick={() => setShouldRecenter(true)}>
+        <button className="w-12 h-12 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.15)] flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 bg-primary-500 text-white" onClick={() => setShouldRecenter(true)}>
           <Navigation2 width={20} height={20} />
         </button>
       </div>
 
       {/* Navigation Instructions Panel */}
-      <div className="map-instructions shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-10 relative">
+      <div className="absolute left-4 right-4 bottom-[calc(env(safe-area-inset-bottom)+80px)] z-[400] bg-surface-0 rounded-2xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.1)] pointer-events-auto relative">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-[var(--primary-600)]">{remainingDistance} {t('common.meters')}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--surface-300)]" />
-            <span className="text-sm font-medium text-[var(--surface-500)]">{eta} {t('common.minutes')} ETA</span>
+            <span className="text-lg font-bold text-primary-600">{remainingDistance} {t('common.meters')}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-surface-300" />
+            <span className="text-sm font-medium text-surface-500">{eta} {t('common.minutes')} ETA</span>
           </div>
           <button
             onClick={() => { stopNavigation(); navigate('/app/chat'); }}
-            className="w-8 h-8 rounded-full bg-[var(--surface-100)] flex items-center justify-center text-[var(--surface-500)] hover:text-[var(--surface-800)] hover:bg-[var(--surface-200)] transition-colors"
+            className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center text-surface-500 hover:text-surface-800 hover:bg-surface-200 transition-colors"
           >
             <X width={16} height={16} />
           </button>
         </div>
 
-        <div className="map-instruction-current" onClick={() => setShowBottomSheet(true)}>
-          <div className="map-instruction-icon">
+        <div className="flex items-center gap-4 bg-primary-50 p-4 rounded-xl cursor-pointer transition-colors duration-200 hover:bg-primary-100" onClick={() => setShowBottomSheet(true)}>
+          <div className="w-12 h-12 bg-surface-0 rounded-full shadow-sm flex items-center justify-center text-primary-600 shrink-0">
             <ArrowRightCircle width={24} height={24} />
           </div>
           <div className="flex-1">
-            <div className="map-instruction-text">
+            <div className="text-base font-bold text-surface-900 leading-tight mb-1">
               {currentStep ? t(currentStep.instructionKey) : t('navigation.instructions.destination')}
             </div>
             {currentStep?.landmark && (
-              <div className="map-instruction-distance">near {currentStep.landmark}</div>
+              <div className="text-sm text-surface-500">near {currentStep.landmark}</div>
             )}
           </div>
         </div>
@@ -239,51 +235,40 @@ const MapScreen: React.FC = () => {
             return (
               <div 
                 key={idx} 
-                className="flex gap-4 p-3 rounded-[var(--radius-md)] transition-colors"
-                style={{
-                  background: isCurrent ? 'var(--primary-50)' : 'transparent',
-                  border: isCurrent ? '1px solid var(--primary-200)' : '1px solid transparent',
-                  opacity: !isCurrent && !isCompleted ? 0.6 : 1
-                }}
+                className={`flex gap-4 p-3 rounded-md transition-colors ${isCurrent ? 'bg-primary-50 border border-primary-200' : 'bg-transparent border border-transparent'} ${!isCurrent && !isCompleted ? 'opacity-60' : ''}`}
               >
                 <div className="flex flex-col items-center mt-1">
                   {isCompleted ? (
-                    <CheckCircle2 width={20} height={20} color="var(--color-success)" />
+                    <CheckCircle2 width={20} height={20} className="text-success" />
                   ) : (
                     <div 
-                      className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                      style={{ borderColor: isCurrent ? 'var(--primary-400)' : 'var(--surface-300)' }}
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isCurrent ? 'border-primary-400' : 'border-surface-300'}`}
                     >
-                      {isCurrent && <div className="w-2 h-2 rounded-full bg-[var(--primary-400)]" />}
+                      {isCurrent && <div className="w-2 h-2 rounded-full bg-primary-400" />}
                     </div>
                   )}
                   {idx < steps.length - 1 && (
                     <div 
-                      className="w-0.5 h-full my-1" 
-                      style={{ background: isCompleted ? 'var(--color-success)' : 'var(--surface-200)', opacity: isCompleted ? 0.5 : 1 }} 
+                      className={`w-0.5 h-full my-1 ${isCompleted ? 'bg-success/50' : 'bg-surface-200'}`}
                     />
                   )}
                 </div>
                 <div className="flex-1 pb-4">
                   <p 
-                    className="font-semibold"
-                    style={{ 
-                      color: isCurrent ? 'var(--primary-700)' : isCompleted ? 'var(--surface-400)' : 'var(--surface-700)',
-                      textDecoration: isCompleted ? 'line-through' : 'none'
-                    }}
+                    className={`font-semibold ${isCurrent ? 'text-primary-700' : isCompleted ? 'text-surface-400 line-through' : 'text-surface-700'}`}
                   >
                     {t(step.instructionKey)}
                   </p>
                   {step.landmark && (
-                    <p className="text-sm text-[var(--surface-500)] mt-1">near {step.landmark}</p>
+                    <p className="text-sm text-surface-500 mt-1">near {step.landmark}</p>
                   )}
-                  <p className="text-xs text-[var(--surface-400)] font-mono mt-1">{step.distance}m • Floor {step.floor}</p>
+                  <p className="text-xs text-surface-400 font-mono mt-1">{step.distance}m • Floor {step.floor}</p>
                 </div>
               </div>
             );
           })}
           {steps.length === 0 && (
-            <p className="text-center text-[var(--surface-500)] py-4">No detailed steps available.</p>
+            <p className="text-center text-surface-500 py-4">No detailed steps available.</p>
           )}
         </div>
       </BottomSheet>
