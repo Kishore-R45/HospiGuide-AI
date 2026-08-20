@@ -3,21 +3,9 @@ import { useLanguageStore } from '../../shared/store';
 import { Card, Input, StatusBadge, Modal } from '../../shared/components';
 import { Search, ChevronDown, User, MapPin, Clock, Stethoscope } from 'lucide-react';
 
-// Type definitions for empty state representation
-interface Doctor {
-  id: number;
-  name: string;
-  departmentId: number;
-  availability: string;
-  roomNumber: string;
-  isAvailableNow: boolean;
-}
-
-interface Department {
-  id: number;
-  name: string;
-  icon: string;
-}
+import { useQuery } from '@tanstack/react-query';
+import { getDepartments, getDoctors } from '../../shared/api/doctorService';
+import type { Doctor } from '../../shared/api/doctorService';
 
 const DoctorScreen: React.FC = () => {
   const { t } = useLanguageStore();
@@ -25,9 +13,32 @@ const DoctorScreen: React.FC = () => {
   const [openAccordion, setOpenAccordion] = useState<number | null>(null);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
 
-  // Empty data arrays - waiting for backend API
-  const departments: Department[] = [];
-  const doctors: Doctor[] = [];
+  // Fetch data from backend
+  const { data: departmentsData = [], isLoading: isLoadingDepts } = useQuery({
+    queryKey: ['departments'],
+    queryFn: getDepartments
+  });
+
+  const { data: doctorsData = [], isLoading: isLoadingDocs } = useQuery({
+    queryKey: ['doctors'],
+    queryFn: getDoctors
+  });
+
+  const isLoading = isLoadingDepts || isLoadingDocs;
+
+  // Filter departments and doctors based on search
+  const filteredDepartments = departmentsData.filter(dept => 
+    dept.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const doctors = doctorsData.map(doc => {
+    // Simple availability logic: just marking everyone available for now.
+    // In a real app, parse `doc.timing` and `doc.days` against current Date.
+    return {
+      ...doc,
+      isAvailableNow: true
+    };
+  });
 
   const handleToggleAccordion = (deptId: number) => {
     setOpenAccordion(openAccordion === deptId ? null : deptId);
@@ -51,15 +62,20 @@ const DoctorScreen: React.FC = () => {
 
       {/* Departments List */}
       <div className="flex-1 overflow-y-auto min-h-0 p-4" style={{ paddingBottom: 'calc(var(--bottom-nav-height) + var(--safe-area-bottom) + 24px)' }}>
-        {departments.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-60">
+            <Stethoscope width={48} height={48} color="var(--surface-400)" className="mb-4 animate-pulse" />
+            <h3 className="text-lg font-semibold text-[var(--surface-700)] mb-1">Loading Data...</h3>
+          </div>
+        ) : filteredDepartments.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-60">
             <Stethoscope width={48} height={48} color="var(--surface-400)" className="mb-4" />
             <h3 className="text-lg font-semibold text-[var(--surface-700)] mb-1">No Data Available</h3>
             <p className="text-sm text-[var(--surface-500)]">{t('doctors.noResults')}</p>
           </div>
         ) : (
-          departments.map((dept) => {
-            const deptDoctors = doctors.filter(d => d.departmentId === dept.id);
+          filteredDepartments.map((dept) => {
+            const deptDoctors = doctors.filter(d => d.department_id === dept.id);
             const isOpen = openAccordion === dept.id;
 
             return (
@@ -98,7 +114,7 @@ const DoctorScreen: React.FC = () => {
                         <div className="doctor-info">
                           <div className="doctor-name">{doc.name}</div>
                           <div className="doctor-meta flex items-center gap-2 mt-1">
-                            <MapPin width={12} height={12} /> Room {doc.roomNumber}
+                            <MapPin width={12} height={12} /> Room {doc.room_number}
                           </div>
                         </div>
                         <StatusBadge
@@ -130,7 +146,7 @@ const DoctorScreen: React.FC = () => {
               <div>
                 <h3 className="text-xl font-bold text-[var(--surface-900)]">{selectedDoctor.name}</h3>
                 <p className="text-sm text-[var(--surface-500)] font-medium mt-1">
-                  {departments.find(d => d.id === selectedDoctor.departmentId)?.name}
+                  {departmentsData.find(d => d.id === selectedDoctor.department_id)?.name}
                 </p>
               </div>
             </div>
@@ -140,14 +156,14 @@ const DoctorScreen: React.FC = () => {
                 <Clock width={20} height={20} color="var(--surface-400)" className="mt-0.5" />
                 <div>
                   <div className="text-sm font-semibold text-[var(--surface-800)] mb-1">{t('doctors.availableTime')}</div>
-                  <div className="text-sm text-[var(--surface-600)]">{selectedDoctor.availability}</div>
+                  <div className="text-sm text-[var(--surface-600)]">{selectedDoctor.timing} ({selectedDoctor.days})</div>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <MapPin width={20} height={20} color="var(--surface-400)" className="mt-0.5" />
                 <div>
                   <div className="text-sm font-semibold text-[var(--surface-800)] mb-1">{t('doctors.room')}</div>
-                  <div className="text-sm text-[var(--surface-600)]">{selectedDoctor.roomNumber}</div>
+                  <div className="text-sm text-[var(--surface-600)]">{selectedDoctor.room_number}</div>
                 </div>
               </div>
             </Card>

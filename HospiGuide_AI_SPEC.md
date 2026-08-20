@@ -121,13 +121,13 @@ flowchart TD
 ### Backend
 | Tech | Why |
 |---|---|
-| Spring Boot 3 + Spring Data JPA | Matches your existing skill set; clean REST + entity mapping |
+| Express / Fastify + Prisma/pg | Node.js ecosystem; clean REST + ORM mapping |
 | PostgreSQL + **PostGIS-style flat X/Y** (not real geo) | You don't need geographic SRID — store plain float X/Y in meters relative to a building origin. Simpler, faster, and matches Leaflet's Simple CRS |
-| Spring WebSocket (STOMP over SockJS) | Live position broadcast if you want a "family member tracking a patient" feature later, and for real-time analytics |
-| Spring Security + JWT (lightweight) | Only needed for the admin panel (see §13.9), not for anonymous patient sessions |
+| Socket.io (Node.js) | Live position broadcast if you want a "family member tracking a patient" feature later, and for real-time analytics |
+| Express Middleware + JWT (lightweight) | Only needed for the admin panel (see §13.9), not for anonymous patient sessions |
 
 ### AI
-- **Gemini 1.5/2.0 Flash API**, called from Spring Boot, using **structured output (JSON mode / function calling)** so the model returns `{ "department": "OPHTHALMOLOGY", "confidence": 0.92, "urgency": "routine" }` instead of free text you have to parse. This is far more reliable for a production flow than prompting for prose and regex-parsing it.
+- **Gemini 1.5/2.0 Flash API**, called from Node.js backend, using **structured output (JSON mode / function calling)** so the model returns `{ "department": "OPHTHALMOLOGY", "confidence": 0.92, "urgency": "routine" }` instead of free text you have to parse. This is far more reliable for a production flow than prompting for prose and regex-parsing it.
 
 ### Algorithms
 - **A\*** for shortest path (Euclidean heuristic on X/Y graph)
@@ -158,16 +158,14 @@ hospiguide-ai/
 │   └── public/
 │       └── maps/                 # floor plan images (floor-1.png, floor-2.png...)
 ├── backend/
-│   ├── src/main/java/com/hospiguide/
-│   │   ├── location/             # Locations, Connections entities + graph service
-│   │   ├── navigation/           # A* pathfinding service
-│   │   ├── department/           # Departments, Doctors
-│   │   ├── beacon/                # BLE_Beacons registry
-│   │   ├── assistant/             # Gemini proxy controller
-│   │   ├── websocket/             # live position config
-│   │   └── admin/
-│   └── src/main/resources/
-│       └── application.yml
+│   ├── src/
+│   │   ├── controllers/          # Route handlers (departments, doctors, locations, etc.)
+│   │   ├── routes/               # Express routes definition
+│   │   ├── services/             # A* pathfinding, Gemini proxy, graph logic
+│   │   ├── models/               # Prisma/pg database models
+│   │   ├── websocket/            # Live position config (Socket.io)
+│   │   └── index.js              # Node.js entry point
+│   ├── .env                      # Environment variables
 ├── data/
 │   ├── seed/                     # CSV/JSON seed data — see §6
 │   └── map-source/                # original floor plan traces (Figma/SVG exports)
@@ -523,7 +521,7 @@ When generating code against this specification:
 - Match the repository structure in §5 exactly; place new files in the correct `feature/` folder.
 - Never hardcode campus-specific labels ("Library", "Canteen") in logic — always branch on `category` enum values, since the same code must work unmodified for a real hospital deployment.
 - All user-facing strings go through the i18n system (`ta.json` / `en.json`) — no inline hardcoded English strings in components.
-- Keep the Gemini API key and any secrets server-side only (Spring Boot `application.yml` / environment variables) — never in frontend code.
+- Keep the Gemini API key and any secrets server-side only (Node.js `.env` environment variables) — never in frontend code.
 - Prefer Leaflet (`L.CRS.Simple`) for map rendering per §7.1 unless a specific task calls for the React Konva overlay.
 - When writing localization/sensor code, always guard for browser API availability (`if ('bluetooth' in navigator)`, etc.) and provide the fallback described in §16 rather than assuming the API exists.
 - Database entities should mirror the schema in §15 field-for-field, including the `is_simulated` flag on `doctors`.
