@@ -82,7 +82,7 @@ flowchart TD
     J -->|deviation detected| H
     J --> K[Arrival confirmation]
 
-    subgraph Backend [Spring Boot Backend]
+    subgraph Backend [Node.js Backend]
         L[REST APIs]
         M[WebSocket - live position broadcast]
         N[PostgreSQL]
@@ -96,7 +96,7 @@ flowchart TD
 
 **Layer responsibilities:**
 - **Frontend (React PWA):** all UI, sensor access, BLE scanning, on-device PDR computation, rendering the map, voice I/O. Position is computed **client-side** for low latency, then synced to backend for logging/analytics via WebSocket.
-- **Backend (Spring Boot):** source of truth for map graph, departments, doctors; computes/validates shortest paths (A*); stores anonymized session analytics; proxies Gemini API calls (never call Gemini directly from the browser — keep the API key server-side).
+- **Backend (Node.js):** source of truth for map graph, departments, doctors; computes/validates shortest paths (A*); stores anonymized session analytics; proxies Gemini API calls (never call Gemini directly from the browser — keep the API key server-side).
 - **Database (PostgreSQL):** graph data, department/doctor data, beacon registry.
 - **AI (Gemini Flash API):** symptom classification, conversational assistant, called through your backend, not the browser.
 
