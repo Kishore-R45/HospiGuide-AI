@@ -1,7 +1,16 @@
 const supabase = require('../config/supabase');
+const NodeCache = require('node-cache');
+const cache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
 
 const getAllDoctors = async (req, res) => {
   try {
+    const cacheKey = 'all_doctors';
+    const cachedData = cache.get(cacheKey);
+    
+    if (cachedData) {
+        return res.json(cachedData);
+    }
+
     const { data, error } = await supabase
       .from('doctors')
       .select('*');
@@ -10,6 +19,7 @@ const getAllDoctors = async (req, res) => {
       throw error;
     }
 
+    cache.set(cacheKey, data);
     res.json(data);
   } catch (error) {
     console.error('Error fetching doctors:', error);
