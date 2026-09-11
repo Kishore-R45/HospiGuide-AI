@@ -1,277 +1,538 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MapContainer, ImageOverlay, Polyline, Marker, useMap, Popup } from 'react-leaflet';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { MapContainer, TileLayer, GeoJSON, Marker, Tooltip, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useLanguageStore, useNavigationStore, useMapStore, useUIStore } from '../../shared/store';
-import { BottomSheet, Button } from '../../shared/components';
-import { X, Navigation2, Volume2, VolumeX, Layers, CheckCircle2, ArrowRightCircle, Maximize2, Minimize2 } from 'lucide-react';
+import { useNavigationStore, useUIStore } from '../../shared/store';
+import { Navigation2, Maximize2, Minimize2, Search, X, LocateFixed, Building2 } from 'lucide-react';
 
-// Custom icons
-const createCustomIcon = (color: string, iconHtml: string) => L.divIcon({
-  className: 'custom-leaflet-icon',
-  html: `<div style="background-color: ${color}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); color: white;">${iconHtml}</div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-});
+// ─── GeoJSON Type Aliases ───
+type GeoJSONData = GeoJSON.FeatureCollection;
 
-const destIcon = createCustomIcon('#ef4444', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>');
+// ─── Building file registry ───
+// Each entry: [filename (without .geojson), display name]
+const BUILDING_FILES: [string, string][] = [
+  ['Block-1', 'Block 1'],
+  ['Block-2', 'Block 2'],
+  ['Block-3', 'Block 3'],
+  ['Canteen', 'Canteen'],
+  ['Dental Block', 'Dental Block'],
+  ['Main Block', 'Main Block'],
+  ['Marchary Block', 'Marchary Block'],
+  ['Out Patient Block', 'Out Patient Block'],
+  ['Pergerancy Block', 'Pergerancy Block'],
+  ['Pharmacy', 'Pharmacy'],
+  ['Siddha & Ayurvedha Block', 'Siddha & Ayurvedha Block'],
+];
 
-const MapController: React.FC<{
-  currentFloor: number;
-  userPosition: { x: number; y: number } | null;
-  shouldRecenter: boolean;
-  onRecentered: () => void;
-  floorPlan: { width: number; height: number } | null;
-}> = ({ userPosition, shouldRecenter, onRecentered, floorPlan }) => {
+const WALKWAY_FILE = 'Walkways or roads';
+const POINT_FILES = ['Entrance', 'Exit'] as const;
+
+// ─── Building Color Palette ───
+// Curated colors that are visually distinct and harmonious on a map
+const BUILDING_COLORS: Record<string, { fill: string; border: string }> = {
+  'Block 1':                   { fill: '#6366f1', border: '#4338ca' },  // indigo
+  'Block 2':                   { fill: '#8b5cf6', border: '#6d28d9' },  // violet
+  'Block 3':                   { fill: '#0ea5e9', border: '#0284c7' },  // sky
+  'Canteen':                   { fill: '#f59e0b', border: '#d97706' },  // amber
+  'Dental Block':              { fill: '#06b6d4', border: '#0891b2' },  // cyan
+  'Main Block':                { fill: '#0d9488', border: '#0f766e' },  // teal (primary)
+  'Marchary Block':            { fill: '#ec4899', border: '#db2777' },  // pink
+  'Out Patient Block':         { fill: '#3b82f6', border: '#2563eb' },  // blue
+  'Pergerancy Block':          { fill: '#ef4444', border: '#dc2626' },  // red
+  'Pharmacy':                  { fill: '#22c55e', border: '#16a34a' },  // green
+  'Siddha & Ayurvedha Block':  { fill: '#f97316', border: '#ea580c' },  // orange
+};
+
+// ─── Campus bounds (computed from all GeoJSON coordinates) ───
+// Slight padding around the campus so the user can see the context
+const CAMPUS_CENTER: L.LatLngTuple = [13.03265, 80.17910];
+const CAMPUS_BOUNDS: L.LatLngBoundsExpression = [
+  [13.03140, 80.17680],  // SW corner
+  [13.03380, 80.18080],  // NE corner
+];
+
+// ─── Custom marker icons ───
+const createGateIcon = (type: 'Entrance' | 'Exit') => {
+  const color = type === 'Entrance' ? '#16a34a' : '#ef4444';
+  const arrow = type === 'Entrance'
+    ? '<path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    : '<path d="M19 12H5M12 19l-7-7 7-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+
+  return L.divIcon({
+    className: 'custom-gate-icon',
+    html: `
+      <div style="
+        position: relative;
+        width: 36px; height: 36px;
+      ">
+        <div style="
+          position: absolute; inset: 0;
+          background: ${color};
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 2.5px solid white;
+          box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        "></div>
+        <div style="
+          position: absolute; inset: 0;
+          display: flex; align-items: center; justify-content: center;
+        ">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">${arrow}</svg>
+        </div>
+      </div>
+    `,
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36],
+  });
+};
+
+const entranceIcon = createGateIcon('Entrance');
+const exitIcon = createGateIcon('Exit');
+
+// ─── Helper: fetch a GeoJSON file from the public directory ───
+async function fetchGeoJSON(subfolder: string, filename: string): Promise<GeoJSONData | null> {
+  try {
+    const url = `/Map Data/${subfolder}/${encodeURIComponent(filename)}.geojson`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    console.warn(`Failed to load GeoJSON: ${subfolder}/${filename}`);
+    return null;
+  }
+}
+
+// ─── Map auto-fit controller ───
+const MapFitBounds: React.FC<{ bounds: L.LatLngBoundsExpression }> = ({ bounds }) => {
   const map = useMap();
-
   useEffect(() => {
-    if (floorPlan) {
-      const bounds = new L.LatLngBounds([0, 0], [floorPlan.height, floorPlan.width]);
-      map.setMaxBounds(bounds);
-      if (!userPosition) {
-        map.fitBounds(bounds, { padding: [20, 20] });
-      }
-    }
-  }, [map, floorPlan, userPosition]);
-
-  useEffect(() => {
-    if (shouldRecenter && userPosition) {
-      map.flyTo([userPosition.y, userPosition.x], map.getZoom() || 1, { duration: 0.5 });
-      onRecentered();
-    }
-  }, [shouldRecenter, userPosition, map, onRecentered]);
-
+    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 19 });
+  }, [map, bounds]);
   return null;
 };
 
-const BlueDot: React.FC<{ position: [number, number]; heading: number }> = ({ position, heading }) => {
-  const icon = L.divIcon({
-    className: 'blue-dot-marker',
-    html: `
-      <div class="ring"></div>
-      <div class="dot" style="transform: rotate(${heading}deg)">
-         <div style="position: absolute; top: -6px; left: 50%; width: 0; height: 0; margin-left: -4px; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 6px solid white;"></div>
-      </div>
-    `,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
-  });
-
-  return <Marker position={position} icon={icon} zIndexOffset={1000} />;
+// ─── Recenter button handler ───
+const RecenterControl: React.FC<{ trigger: number }> = ({ trigger }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (trigger > 0) {
+      map.flyToBounds(CAMPUS_BOUNDS, { padding: [30, 30], maxZoom: 19, duration: 0.6 });
+    }
+  }, [map, trigger]);
+  return null;
 };
 
+// ─── Individual Building Layer ───
+const BuildingLayer: React.FC<{
+  data: GeoJSONData;
+  name: string;
+  isSelected: boolean;
+  onSelect: (name: string) => void;
+}> = ({ data, name, isSelected, onSelect }) => {
+  const colors = BUILDING_COLORS[name] || { fill: '#6b7280', border: '#4b5563' };
+
+  const style = useCallback((): L.PathOptions => ({
+    fillColor: colors.fill,
+    fillOpacity: isSelected ? 0.65 : 0.45,
+    color: isSelected ? '#ffffff' : colors.border,
+    weight: isSelected ? 3 : 2,
+    opacity: 1,
+  }), [colors, isSelected]);
+
+  const onEachFeature = useCallback((_feature: GeoJSON.Feature, layer: L.Layer) => {
+    layer.on({
+      click: () => onSelect(name),
+      mouseover: (e: L.LeafletMouseEvent) => {
+        const target = e.target as L.Path;
+        target.setStyle({
+          fillOpacity: 0.65,
+          weight: 3,
+          color: '#ffffff',
+        });
+        target.bringToFront();
+      },
+      mouseout: (e: L.LeafletMouseEvent) => {
+        if (!isSelected) {
+          const target = e.target as L.Path;
+          target.setStyle({
+            fillOpacity: 0.45,
+            weight: 2,
+            color: colors.border,
+          });
+        }
+      },
+    });
+  }, [name, onSelect, isSelected, colors]);
+
+  return (
+    <GeoJSON
+      key={`${name}-${isSelected}`}
+      data={data}
+      style={style}
+      onEachFeature={onEachFeature}
+    >
+      <Tooltip
+        direction="center"
+        permanent
+        className="building-label"
+      >
+        {name}
+      </Tooltip>
+    </GeoJSON>
+  );
+};
+
+// ─── Walkways Layer ───
+const WalkwayLayer: React.FC<{ data: GeoJSONData }> = ({ data }) => {
+  const style = useCallback((): L.PathOptions => ({
+    color: '#94a3b8',
+    weight: 3,
+    opacity: 0.7,
+    dashArray: '8, 6',
+    lineCap: 'round',
+    lineJoin: 'round',
+  }), []);
+
+  return <GeoJSON data={data} style={style} />;
+};
+
+// ─── Navigation Route Layer ───
+const NavigationRouteLayer: React.FC<{ data: GeoJSONData }> = ({ data }) => {
+  const style = useCallback((): L.PathOptions => ({
+    color: '#0d9488',
+    weight: 5,
+    opacity: 0.9,
+    lineCap: 'round',
+    lineJoin: 'round',
+  }), []);
+
+  return <GeoJSON data={data} style={style} />;
+};
+
+// ─── Main MapScreen Component ───
 const MapScreen: React.FC = () => {
-  const navigate = useNavigate();
-  const { t } = useLanguageStore();
-  const {
-    isNavigating, destinationName, steps, currentStepIndex,
-    routeCoordinates, voiceEnabled, remainingDistance, eta,
-    stopNavigation, toggleVoice
-  } = useNavigationStore();
-  const { currentFloor, userPosition, userHeading, setCurrentFloor } = useMapStore();
+  const { isNavigating, destinationName, routeCoordinates, stopNavigation } = useNavigationStore();
   const { isFullscreen, setFullscreen } = useUIStore();
 
-  const [showBottomSheet, setShowBottomSheet] = useState(true);
-  const [shouldRecenter, setShouldRecenter] = useState(true);
-  const [showFloorPicker, setShowFloorPicker] = useState(false);
+  // Map data state
+  const [buildings, setBuildings] = useState<{ name: string; data: GeoJSONData }[]>([]);
+  const [walkways, setWalkways] = useState<GeoJSONData | null>(null);
+  const [points, setPoints] = useState<{ type: 'Entrance' | 'Exit'; coords: L.LatLngTuple }[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Hardcoded floor plans config to avoid mockData dependency
-  const floorPlans = [
-    { floorNumber: 1, name: "Ground Floor", imageUrl: "/maps/floor-1.svg", width: 800, height: 600 },
-    { floorNumber: 2, name: "First Floor", imageUrl: "/maps/floor-2.svg", width: 800, height: 600 },
-  ];
+  // UI state
+  const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [recenterTrigger, setRecenterTrigger] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const floorPlan = floorPlans.find(f => f.floorNumber === currentFloor) || null;
-  const bounds: L.LatLngBoundsExpression = floorPlan
-    ? [[0, 0], [floorPlan.height, floorPlan.width]]
-    : [[0, 0], [1000, 1000]];
+  // ─── Load all GeoJSON data ───
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAll() {
+      setLoading(true);
+
+      // Load buildings
+      const buildingResults = await Promise.all(
+        BUILDING_FILES.map(async ([file, displayName]) => {
+          const data = await fetchGeoJSON('Buildings', file);
+          return data ? { name: displayName, data } : null;
+        })
+      );
+
+      // Load walkways
+      const walkwayData = await fetchGeoJSON('Walkways', WALKWAY_FILE);
+
+      // Load points
+      const pointResults = await Promise.all(
+        POINT_FILES.map(async (name) => {
+          const data = await fetchGeoJSON('Points', name);
+          if (data && data.features.length > 0) {
+            const geom = data.features[0].geometry;
+            if (geom.type === 'Point') {
+              const [lng, lat] = geom.coordinates;
+              return { type: name as 'Entrance' | 'Exit', coords: [lat, lng] as L.LatLngTuple };
+            }
+          }
+          return null;
+        })
+      );
+
+      if (!cancelled) {
+        setBuildings(buildingResults.filter((b): b is { name: string; data: GeoJSONData } => b !== null));
+        setWalkways(walkwayData);
+        setPoints(pointResults.filter((p): p is { type: 'Entrance' | 'Exit'; coords: L.LatLngTuple } => p !== null));
+        setLoading(false);
+      }
+    }
+
+    loadAll();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Focus search input when opened
+  useEffect(() => {
+    if (showSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showSearch]);
 
   // Cleanup fullscreen on unmount
   useEffect(() => {
     return () => setFullscreen(false);
   }, [setFullscreen]);
 
-  if (!isNavigating) {
+  // ─── Filtered buildings for search ───
+  const filteredBuildings = useMemo(() => {
+    if (!searchQuery.trim()) return buildings;
+    const q = searchQuery.toLowerCase();
+    return buildings.filter(b => b.name.toLowerCase().includes(q));
+  }, [buildings, searchQuery]);
+
+  // ─── Navigation route as GeoJSON ───
+  const navigationGeoJSON = useMemo((): GeoJSONData | null => {
+    if (!isNavigating || routeCoordinates.length < 2) return null;
+    return {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: routeCoordinates,
+        }
+      }]
+    };
+  }, [isNavigating, routeCoordinates]);
+
+  const handleBuildingSelect = useCallback((name: string) => {
+    setSelectedBuilding(prev => prev === name ? null : name);
+  }, []);
+
+  const handleRecenter = useCallback(() => {
+    setRecenterTrigger(prev => prev + 1);
+  }, []);
+
+  const handleSearchSelect = useCallback((name: string) => {
+    setSelectedBuilding(name);
+    setSearchQuery('');
+    setShowSearch(false);
+  }, []);
+
+  // ─── Loading State ───
+  if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-surface-50 p-6 text-center">
-        <Navigation2 width={64} height={64} className="text-surface-300 mb-4" />
-        <h2 className="text-xl font-bold text-surface-800 mb-2">No Active Route</h2>
-        <p className="text-base text-surface-500 mb-6">Please select a destination from the assistant screen.</p>
-        <Button onClick={() => navigate('/app/chat')}>Back to Assistant</Button>
+      <div className="flex-1 flex flex-col items-center justify-center bg-surface-50 gap-4">
+        <div className="relative w-16 h-16">
+          <div className="absolute inset-0 rounded-full border-4 border-surface-200" />
+          <div className="absolute inset-0 rounded-full border-4 border-primary-500 border-t-transparent animate-spin" />
+        </div>
+        <p className="text-surface-500 font-medium text-sm animate-pulse">Loading campus map…</p>
       </div>
     );
   }
 
-  const currentStep = steps[currentStepIndex];
-  const polylinePositions: L.LatLngTuple[] = routeCoordinates.map(([x, y]) => [y, x]);
-
   return (
     <div className={`flex-1 flex flex-col min-h-0 bg-surface-50 relative overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[999] bg-surface-0' : ''}`}>
-      {/* Fullscreen Toggle Button */}
-      <button 
-        className="absolute top-4 right-4 z-[400] w-10 h-10 bg-surface-0 rounded-lg shadow-md flex items-center justify-center text-surface-600 transition-colors duration-200 hover:bg-surface-50"
-        onClick={() => setFullscreen(!isFullscreen)}
-        aria-label={isFullscreen ? t('map.exitFullscreen') : t('map.fullscreen')}
-      >
-        {isFullscreen ? <Minimize2 width={20} height={20} /> : <Maximize2 width={20} height={20} />}
-      </button>
 
-      {/* Map Container */}
-      <div className="flex-1 w-full h-full min-h-[50vh] bg-surface-100">
+      {/* ─── Top Bar: Search ─── */}
+      <div className="absolute top-4 left-4 right-4 z-[1000] flex items-center gap-3 pointer-events-none">
+        {/* Search Bar */}
+        <div className={`pointer-events-auto transition-all duration-300 ${showSearch ? 'flex-1' : 'w-auto'}`}>
+          {showSearch ? (
+            <div className="relative">
+              <div className="flex items-center bg-surface-0 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] overflow-hidden border border-surface-200/50">
+                <Search width={18} height={18} className="ml-4 text-surface-400 shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search buildings..."
+                  className="flex-1 bg-transparent text-surface-800 placeholder-surface-400 px-3 py-3.5 text-sm font-medium outline-none"
+                />
+                <button
+                  onClick={() => { setShowSearch(false); setSearchQuery(''); }}
+                  className="p-3 text-surface-400 hover:text-surface-600 transition-colors"
+                >
+                  <X width={18} height={18} />
+                </button>
+              </div>
+
+              {/* Search Results Dropdown */}
+              {searchQuery.trim() && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-surface-0 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-surface-200/50 overflow-hidden max-h-[280px] overflow-y-auto">
+                  {filteredBuildings.length > 0 ? (
+                    filteredBuildings.map((b) => {
+                      const colors = BUILDING_COLORS[b.name] || { fill: '#6b7280', border: '#4b5563' };
+                      return (
+                        <button
+                          key={b.name}
+                          onClick={() => handleSearchSelect(b.name)}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-50 transition-colors text-left border-b border-surface-100 last:border-b-0"
+                        >
+                          <div
+                            className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm"
+                            style={{ backgroundColor: colors.fill, border: `2px solid ${colors.border}` }}
+                          />
+                          <span className="text-sm font-medium text-surface-700">{b.name}</span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="px-4 py-6 text-center text-sm text-surface-400">
+                      No buildings found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowSearch(true)}
+              className="w-11 h-11 bg-surface-0 rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.1)] flex items-center justify-center text-surface-600 hover:bg-surface-50 transition-all duration-200 active:scale-95 border border-surface-200/50"
+            >
+              <Search width={18} height={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Fullscreen Toggle */}
+        <button
+          className="pointer-events-auto w-11 h-11 bg-surface-0 rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.1)] flex items-center justify-center text-surface-600 hover:bg-surface-50 transition-all duration-200 active:scale-95 border border-surface-200/50"
+          onClick={() => setFullscreen(!isFullscreen)}
+        >
+          {isFullscreen ? <Minimize2 width={18} height={18} /> : <Maximize2 width={18} height={18} />}
+        </button>
+      </div>
+
+      {/* ─── Right Controls ─── */}
+      <div className="absolute right-4 bottom-28 z-[1000] flex flex-col gap-2.5 pointer-events-auto">
+        <button
+          className="w-11 h-11 rounded-xl bg-surface-0 shadow-[0_4px_16px_rgba(0,0,0,0.1)] flex items-center justify-center text-primary-600 hover:bg-primary-50 transition-all duration-200 active:scale-95 border border-surface-200/50"
+          onClick={handleRecenter}
+          title="Recenter map"
+        >
+          <LocateFixed width={20} height={20} />
+        </button>
+      </div>
+
+      {/* ─── Map Container ─── */}
+      <div className="flex-1 w-full h-full min-h-[50vh]">
         <MapContainer
-          crs={L.CRS.Simple}
-          bounds={bounds}
+          center={CAMPUS_CENTER}
+          zoom={18}
           className="w-full h-full"
           zoomControl={false}
           attributionControl={false}
-          minZoom={-2}
-          maxZoom={2}
+          minZoom={16}
+          maxZoom={20}
+          maxBounds={CAMPUS_BOUNDS}
+          maxBoundsViscosity={0.9}
         >
-          <MapController 
-            currentFloor={currentFloor} 
-            userPosition={userPosition} 
-            shouldRecenter={shouldRecenter} 
-            onRecentered={() => setShouldRecenter(false)} 
-            floorPlan={floorPlan}
+          <MapFitBounds bounds={CAMPUS_BOUNDS} />
+          <RecenterControl trigger={recenterTrigger} />
+
+          {/* Base Tile Layer - OpenStreetMap */}
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={20}
           />
-          
-          {floorPlan && (
-            <ImageOverlay url={floorPlan.imageUrl} bounds={bounds} />
-          )}
 
-          {polylinePositions.length > 0 && (
-            <Polyline 
-              positions={polylinePositions} 
-              pathOptions={{ color: '#0d9488', weight: 6, opacity: 0.8, lineCap: 'round', lineJoin: 'round' }} 
+          {/* Walkways Layer (render beneath buildings) */}
+          {walkways && <WalkwayLayer data={walkways} />}
+
+          {/* Navigation Route (when actively navigating) */}
+          {navigationGeoJSON && <NavigationRouteLayer data={navigationGeoJSON} />}
+
+          {/* Building Layers */}
+          {buildings.map((b) => (
+            <BuildingLayer
+              key={b.name}
+              data={b.data}
+              name={b.name}
+              isSelected={selectedBuilding === b.name}
+              onSelect={handleBuildingSelect}
             />
-          )}
+          ))}
 
-          {routeCoordinates.length > 0 && (
-            <Marker position={[routeCoordinates[routeCoordinates.length-1][1], routeCoordinates[routeCoordinates.length-1][0]]} icon={destIcon}>
-              <Popup><strong>{destinationName}</strong></Popup>
+          {/* Entrance & Exit Markers */}
+          {points.map((p) => (
+            <Marker
+              key={p.type}
+              position={p.coords}
+              icon={p.type === 'Entrance' ? entranceIcon : exitIcon}
+            >
+              <Popup className="custom-popup">
+                <div className="font-semibold text-sm">{p.type}</div>
+                <div className="text-xs text-surface-500 mt-0.5">Hospital {p.type}</div>
+              </Popup>
             </Marker>
-          )}
-
-          {userPosition && (
-            <BlueDot position={[userPosition.y, userPosition.x]} heading={userHeading} />
-          )}
+          ))}
         </MapContainer>
       </div>
 
-      {/* Floating Controls */}
-      <div className="absolute right-4 bottom-32 z-[400] flex flex-col gap-3 pointer-events-auto">
-        <div className="relative">
-          {showFloorPicker && (
-            <div className="absolute bottom-full right-0 mb-3 bg-surface-0 border border-surface-200 rounded-md overflow-hidden shadow-lg animate-fade-in-up flex flex-col w-[120px]">
-              {floorPlans.map(fp => (
-                <button
-                  key={fp.floorNumber}
-                  onClick={() => { setCurrentFloor(fp.floorNumber); setShowFloorPicker(false); setShouldRecenter(true); }}
-                  className={`w-full px-4 py-3 text-sm font-medium text-left transition-colors ${currentFloor === fp.floorNumber ? 'bg-primary-50 text-primary-600' : 'bg-transparent text-surface-700 hover:bg-surface-50'}`}
+      {/* ─── Selected Building Info Panel ─── */}
+      {selectedBuilding && (
+        <div className="absolute left-4 right-4 bottom-24 z-[1000] pointer-events-auto animate-fade-in-up">
+          <div className="bg-surface-0/95 backdrop-blur-md rounded-2xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-surface-200/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+                  style={{
+                    backgroundColor: (BUILDING_COLORS[selectedBuilding]?.fill || '#6b7280') + '20',
+                  }}
                 >
-                  {fp.name}
-                </button>
-              ))}
-            </div>
-          )}
-          <button className="w-12 h-12 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.15)] flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 bg-surface-0 text-primary-600" onClick={() => setShowFloorPicker(!showFloorPicker)}>
-            <Layers width={20} height={20} />
-          </button>
-        </div>
-        
-        <button className="w-12 h-12 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.15)] flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 bg-surface-0 text-primary-600" onClick={toggleVoice}>
-          {voiceEnabled ? <Volume2 width={20} height={20} /> : <VolumeX width={20} height={20} className="text-surface-400" />}
-        </button>
-        
-        <button className="w-12 h-12 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.15)] flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 bg-primary-500 text-white" onClick={() => setShouldRecenter(true)}>
-          <Navigation2 width={20} height={20} />
-        </button>
-      </div>
-
-      {/* Navigation Instructions Panel */}
-      <div className="absolute left-4 right-4 bottom-[calc(env(safe-area-inset-bottom)+80px)] z-[400] bg-surface-0 rounded-2xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.1)] pointer-events-auto relative">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-primary-600">{remainingDistance} {t('common.meters')}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-surface-300" />
-            <span className="text-sm font-medium text-surface-500">{eta} {t('common.minutes')} ETA</span>
-          </div>
-          <button
-            onClick={() => { stopNavigation(); navigate('/app/chat'); }}
-            className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center text-surface-500 hover:text-surface-800 hover:bg-surface-200 transition-colors"
-          >
-            <X width={16} height={16} />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-4 bg-primary-50 p-4 rounded-xl cursor-pointer transition-colors duration-200 hover:bg-primary-100" onClick={() => setShowBottomSheet(true)}>
-          <div className="w-12 h-12 bg-surface-0 rounded-full shadow-sm flex items-center justify-center text-primary-600 shrink-0">
-            <ArrowRightCircle width={24} height={24} />
-          </div>
-          <div className="flex-1">
-            <div className="text-base font-bold text-surface-900 leading-tight mb-1">
-              {currentStep ? t(currentStep.instructionKey) : t('navigation.instructions.destination')}
-            </div>
-            {currentStep?.landmark && (
-              <div className="text-sm text-surface-500">near {currentStep.landmark}</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Steps Bottom Sheet */}
-      <BottomSheet 
-        isOpen={showBottomSheet} 
-        onClose={() => setShowBottomSheet(false)}
-        title={`${t('navigation.steps')} (${steps.length})`}
-      >
-        <div className="flex flex-col gap-4 mt-2">
-          {steps.map((step, idx) => {
-            const isCompleted = idx < currentStepIndex;
-            const isCurrent = idx === currentStepIndex;
-            
-            return (
-              <div 
-                key={idx} 
-                className={`flex gap-4 p-3 rounded-md transition-colors ${isCurrent ? 'bg-primary-50 border border-primary-200' : 'bg-transparent border border-transparent'} ${!isCurrent && !isCompleted ? 'opacity-60' : ''}`}
-              >
-                <div className="flex flex-col items-center mt-1">
-                  {isCompleted ? (
-                    <CheckCircle2 width={20} height={20} className="text-success" />
-                  ) : (
-                    <div 
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isCurrent ? 'border-primary-400' : 'border-surface-300'}`}
-                    >
-                      {isCurrent && <div className="w-2 h-2 rounded-full bg-primary-400" />}
-                    </div>
-                  )}
-                  {idx < steps.length - 1 && (
-                    <div 
-                      className={`w-0.5 h-full my-1 ${isCompleted ? 'bg-success/50' : 'bg-surface-200'}`}
-                    />
-                  )}
+                  <Building2
+                    width={20}
+                    height={20}
+                    style={{ color: BUILDING_COLORS[selectedBuilding]?.fill || '#6b7280' }}
+                  />
                 </div>
-                <div className="flex-1 pb-4">
-                  <p 
-                    className={`font-semibold ${isCurrent ? 'text-primary-700' : isCompleted ? 'text-surface-400 line-through' : 'text-surface-700'}`}
-                  >
-                    {t(step.instructionKey)}
-                  </p>
-                  {step.landmark && (
-                    <p className="text-sm text-surface-500 mt-1">near {step.landmark}</p>
-                  )}
-                  <p className="text-xs text-surface-400 font-mono mt-1">{step.distance}m • Floor {step.floor}</p>
+                <div>
+                  <h3 className="text-base font-bold text-surface-800">{selectedBuilding}</h3>
+                  <p className="text-xs text-surface-400 mt-0.5">Tap for navigation</p>
                 </div>
               </div>
-            );
-          })}
-          {steps.length === 0 && (
-            <p className="text-center text-surface-500 py-4">No detailed steps available.</p>
-          )}
+              <button
+                onClick={() => setSelectedBuilding(null)}
+                className="w-8 h-8 rounded-lg bg-surface-100 flex items-center justify-center text-surface-400 hover:text-surface-600 hover:bg-surface-200 transition-colors"
+              >
+                <X width={14} height={14} />
+              </button>
+            </div>
+          </div>
         </div>
-      </BottomSheet>
+      )}
+
+      {/* ─── Active Navigation Banner ─── */}
+      {isNavigating && (
+        <div className="absolute left-4 right-4 bottom-24 z-[1000] pointer-events-auto animate-fade-in-up">
+          <div className="bg-primary-600 rounded-2xl p-4 shadow-[0_8px_30px_rgba(13,148,136,0.3)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Navigation2 width={20} height={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Navigating to</h3>
+                  <p className="text-white/80 text-xs">{destinationName}</p>
+                </div>
+              </div>
+              <button
+                onClick={stopNavigation}
+                className="px-3 py-1.5 bg-white/20 rounded-lg text-white text-xs font-semibold hover:bg-white/30 transition-colors"
+              >
+                Stop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
