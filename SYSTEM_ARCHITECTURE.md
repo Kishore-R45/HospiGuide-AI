@@ -31,13 +31,13 @@ The complete indoor-navigation system described in the project specification is 
 - Doctor availability calculation in both the doctor directory and RAG context generation.
 - Hugging Face chat generation with a fallback model.
 - Optional Pinecone semantic retrieval over department and doctor records.
-- Leaflet/OpenStreetMap campus map with static GeoJSON overlays.
+- Leaflet mapped-building view with static GeoJSON overlays and a client-side shortest-path route builder.
 - Local persistent state for language, permissions, navigation preferences, and selected session information.
 - Admin UI shell with a local hardcoded password and placeholder data-management tabs.
 
 ### Designed but not active
 
-- Indoor node/edge graph and A* routing.
+- Indoor node/edge graph and A* routing for BLE/current-position navigation.
 - Multi-floor route planning with lift/stair accessibility weighting.
 - BLE beacon scanning and beacon-based position correction.
 - Pedestrian dead reckoning and sensor fusion.
@@ -72,7 +72,7 @@ flowchart LR
     API --> Assistant
 
     CampusMap --> GeoJSON[Static GeoJSON map assets]
-    CampusMap --> OSM[OpenStreetMap tile service]
+    CampusMap --> GeoJSON
 
     Future[Planned indoor navigation services] -. future integration .-> Browser
     Future -. future APIs .-> API
@@ -88,7 +88,7 @@ flowchart LR
 | Supabase PostgreSQL | Hospital blocks, departments, doctors, pharmacy services, symptom mappings, navigation hints | Also graph nodes, graph edges, beacons, sessions, route metadata, and administrative data |
 | Hugging Face | Chat completion and embeddings | AI assistant generation and multilingual semantic processing unless replaced by the specified Gemini design |
 | Pinecone | Optional semantic retrieval over department and doctor vectors | Expanded retrieval over symptoms, services, landmarks, and navigation knowledge |
-| Static map assets | Campus buildings, roads, entrance, exit | Indoor floor plans and navigation graph visualization source |
+| Static map assets | Mapped buildings, walkways, entrance, exit | Indoor floor plans and navigation graph visualization source |
 
 ## 4. End-to-End User Workflow
 
@@ -267,23 +267,25 @@ flowchart TD
 
 **Primary file:** `MapScreen.tsx`
 
-**Purpose:** Provide an interactive visual view of the prototype campus and its buildings.
+**Purpose:** Provide an interactive mapped-building view and a first route-construction prototype.
 
 **Workflow:**
 
 1. The screen loads ten building GeoJSON files from `public/Map Data/Buildings`.
-2. It loads a walkway/road GeoJSON layer.
+2. It loads a walkway/road GeoJSON layer as the route network.
 3. It loads entrance and exit point GeoJSON files.
-4. Leaflet renders the map using latitude/longitude coordinates and OpenStreetMap tiles.
+4. Leaflet renders only the project-owned GeoJSON layers. External OpenStreetMap tiles are omitted so unrelated outdoor building footprints are not shown.
 5. Buildings receive a fixed color palette and permanent labels.
 6. Hovering or selecting a building changes its visual emphasis.
 7. Search filters building names and selects a result.
 8. Entrance and exit points render as custom markers with popups.
 9. Recenter fits the configured campus bounds.
 10. Fullscreen hides the surrounding application shell.
-11. If another part of the application populates `routeCoordinates` and `isNavigating`, the screen can render that route as a GeoJSON line and show a navigation banner.
+11. The route builder resolves `Entrance`, `Exit`, or a mapped building name from free text and suggestions.
+12. Walkway vertices form a local graph; the nearest graph nodes are connected to the selected endpoints, and Dijkstra's algorithm selects the shortest available path.
+13. The route is stored in navigation state and rendered as a highlighted GeoJSON line with a navigation banner.
 
-**Current limitation:** The map is a campus geospatial viewer, not an indoor floor-plan renderer. It does not currently calculate or display a live user position.
+**Current limitation:** Route endpoints currently resolve to mapped building centroids or entrance/exit points. Department and room text must include a recognizable mapped building name. The route starts from the manually selected `From` field; BLE/current-position routing is not connected yet.
 
 ### Module 5.7: Navigation and map state contracts
 
@@ -555,22 +557,26 @@ The data is structured as a prototype dataset. The current schema has no numeric
 | Symptom knowledge | Supabase `symptom_mappings` | Seeded but not queried by active RAG code |
 | Pharmacy information | Supabase `pharmacy_services` | Seeded but not queried by active API/RAG code |
 | Landmark hints | Supabase `navigation_hints` | Seeded but not queried by active navigation code |
-| Campus geometry | Static GeoJSON files | MapScreen |
+| Mapped geometry and route network | Static GeoJSON files | MapScreen and client-side route builder |
 | Semantic retrieval | Pinecone vectors | RAG service |
 
 ## 8. Map and Navigation Architecture: Current vs Target
 
-### Current map workflow
+### Current map and route workflow
 
 ```mermaid
 flowchart LR
-    Files[Static building, walkway, entrance, exit GeoJSON] --> Loader[MapScreen loader]
+    Files[Mapped building, walkway, entrance, exit GeoJSON] --> Loader[MapScreen loader]
     Loader --> Leaflet[Leaflet map]
-    Leaflet --> OSM[OpenStreetMap tiles]
     User --> Search[Building search]
     Search --> Leaflet
     User --> Select[Select building]
     Select --> Panel[Building information panel]
+    From[From address] --> Resolve[Resolve mapped endpoint]
+    To[To address] --> Resolve
+    Resolve --> Graph[Walkway graph]
+    Graph --> Shortest[Dijkstra shortest path]
+    Shortest --> Leaflet
 ```
 
 ### Intended future indoor-navigation workflow
